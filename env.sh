@@ -1,16 +1,13 @@
 #/bin/bash
 
-# helper functions
-
-function http_readiness_check {
-  name=$1
-  url=$2
-  res=$(curl --retry 10 -f --retry-all-errors --retry-delay 5 -s -w "%{http_code}" -o /dev/null  "$url") && if [ $res -eq "200" ]; then echo "✅ $name OK"; else echo "❌ $name FAILED"; fi
-}
+source .secrets/env.sh
 
 
 export DOCKER_NETWORK_NAME=primenet
 export DOCKER_NETWORK_SUBNET=18
+export DATA_ROOT_FOLDER=/home/${USER}/apps
+export WILDCARD_DOMAIN=zez.duckdns.org
+export EXPOSE_BINDADDRESS=127.0.0.1
 
 # Minio
 # https://hub.docker.com/r/minio/minio/tags
@@ -118,4 +115,61 @@ export openwebui_image=ghcr.io/open-webui/open-webui:0.6.7
 # https://hub.docker.com/r/dockurr/windows/tags
 export windows_image=dockurr/windows:4.35
 
+
+# helper functions
+
+function http_readiness_check {
+    name=$1
+    url=$2
+    retries=60
+    echo "Checking readiness of $name at $url..."
+    for i in $(seq 1 "$retries"); do
+        echo "Attempt $i: Checking $name at $url..."
+        res=$(curl -f -s -m 5 -w "%{http_code}" -o /dev/null "$url")
+        if [ "$res" -eq "200" ]; then
+            echo "✅ $name OK"
+            break
+        else
+            if [ "$i" -lt "$retries" ]; then
+                echo "⏪ Retrying in 5 seconds..."
+                sleep 2
+            else
+                echo "❌ $name FAILED after 10 attempts"
+            fi
+        fi
+    done
+}
+
+function create_config_and_data_folder(){
+    servicename=$1
+    ownername=$2
+    groupname=$3
+
+    sudo mkdir -p ${DATA_ROOT_FOLDER}/${servicename}/config
+    sudo mkdir -p ${DATA_ROOT_FOLDER}/${servicename}/data
+
+    if [ -d "templates/${servicename}/config" ]; then
+    
+        sudo cp -r templates/${servicename}/config/* ${DATA_ROOT_FOLDER}/${servicename}/config
+
+        # create config files
+        for tmpl_file in templates/${servicename}/config/*.tmpl; do
+            echo "Processing template file: ${tmpl_file}"
+            output_file=${DATA_ROOT_FOLDER}/${servicename}/config/$(basename "${tmpl_file}" .tmpl)
+            envsubst < "${tmpl_file}" | sudo tee "${output_file}"
+            echo "Created config file: ${output_file}"
+        done
+    fi
+    sudo chown -R ${ownername}:${groupname} ${DATA_ROOT_FOLDER}/${servicename}
+
+    echo "Created folder structure for service: ${servicename}"
+}
+
+function delete_config_and_data_folder(){
+    servicename=$1
+
+    sudo rm -rf ${DATA_ROOT_FOLDER}/${servicename}
+
+    echo "Deleted folder structure for service: ${servicename}"
+}
 
