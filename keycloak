@@ -8,6 +8,9 @@ export service_check_tcponly=false
 
 function runsvc(){
 
+    service_name=$1
+    service_image=$2
+
     docker run -d \
         --name "${service_name}" \
         --hostname "${service_name}" \
@@ -38,6 +41,9 @@ function runsvc(){
 }
 
 function post_start_tasks(){
+    
+    service_name=$1
+
     echo "populating keycloak with realms.."
     # Login to Keycloak and retrieve access token
     response=$(curl -s -X POST "https://${service_name}.${WILDCARD_DOMAIN}/realms/master/protocol/openid-connect/token" \

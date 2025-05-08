@@ -2,43 +2,46 @@
 
 ```sh
 
-# docker network
-network.sh
+source init
 
 # essentials
-./lab.sh traefik start
-./lab.sh portainer start
+lab run traefik
+lab run portainer
 
 # repos
-./lab.sh reg start
-./lab.sh rui start
-./lab.sh reposilite start
-./lab.sh static start
+lab run reg
+lab run rui
+lab run reposilite
+lab run static
 
 # idp
-./lab.sh keycloak start
+lab run keycloak
 
 # observability
-./lab.sh prometheus start
+lab run prometheus
+lab run loki
 
 ```
 
 Destroy everything
 
 ```sh
+source init
+
 # essentials
-./lab.sh traefik destroy
-./lab.sh portainer destroy
+lab destroy traefik
+lab destroy portainer
 
 # repos
-./lab.sh reg destroy
-./lab.sh rui destroy
-./lab.sh reposilite destroy
-./lab.sh static destroy
+lab destroy reg
+lab destroy rui
+lab destroy reposilite
+lab destroy static
 
 # idp
-./lab.sh keycloak destroy
+lab destroy keycloak
 
 # observability
-./lab.sh prometheus destroy
+lab destroy prometheus
+lab destroy loki
 ```

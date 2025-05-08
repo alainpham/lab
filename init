@@ -129,15 +129,15 @@ export windows_image=dockurr/windows:4.35
 # Helper functions
 
 function readiness_check {
-    name=$1
+    service_name=$1
     url=$2
     tcponly=$3
     retries=60
-    echo "Checking readiness of $name at $url..."
+    echo "Checking readiness of $service_name at $url..."
     for i in $(seq 1 "$retries"); do
         
         if [ "$tcponly" == "true" ]; then
-            echo "Attemp $i: Checking $name with tcp at $url..."
+            echo "Attemp $i: Checking $service_name with tcp at $url..."
             host=$(echo "$url" | cut -d':' -f1)
             port=$(echo "$url" | cut -d':' -f2)
             nc -z -w5 "$host" "$port"
@@ -148,57 +148,63 @@ function readiness_check {
                 res=0
             fi
         else
-            echo "Attemp $i: Checking $name with http at $url..."
+            echo "Attemp $i: Checking $service_name with http at $url..."
             res=$(curl -f -L -s -m 5 -w "%{http_code}" -o /dev/null "$url")
         fi
         
         echo "Response code: $res"
 
         if [ "$res" -eq "200" ]; then
-            echo "✅ $name OK"
+            echo "✅ $service_name OK"
             break
         else
             if [ "$i" -lt "$retries" ]; then
                 echo "⏪ Retrying in 5 seconds..."
                 sleep 2
             else
-                echo "❌ $name FAILED after 10 attempts"
+                echo "❌ $service_name FAILED after 10 attempts"
             fi
         fi
     done
 }
 
 function create_config_and_data_folder(){
-    servicename=$1
+    service_name=$1
     ownername=$2
     groupname=$3
 
-    sudo mkdir -p ${DATA_ROOT_FOLDER}/${servicename}/config
-    sudo mkdir -p ${DATA_ROOT_FOLDER}/${servicename}/data
+    sudo mkdir -p ${DATA_ROOT_FOLDER}/${service_name}/config
+    sudo mkdir -p ${DATA_ROOT_FOLDER}/${service_name}/data
 
-    if [ -d "templates/${servicename}/config" ]; then
+    if [ -d "templates/${service_name}/config" ]; then
     
-        sudo cp -r templates/${servicename}/config/* ${DATA_ROOT_FOLDER}/${servicename}/config
+        sudo cp -r templates/${service_name}/config/* ${DATA_ROOT_FOLDER}/${service_name}/config
 
         # create config files
-        for tmpl_file in templates/${servicename}/config/*.tmpl; do
-            echo "Processing template file: ${tmpl_file}"
-            output_file=${DATA_ROOT_FOLDER}/${servicename}/config/$(basename "${tmpl_file}" .tmpl)
-            envsubst < "${tmpl_file}" | sudo tee "${output_file}" > /dev/null
-            echo "Created config file: ${output_file}"
-        done
-    fi
-    sudo chown -R ${ownername}:${groupname} ${DATA_ROOT_FOLDER}/${servicename}
+        if compgen -G "templates/${service_name}/config/*.tmpl" > /dev/null; then
+            echo "Template files found for ${service_name}."
+            for tmpl_file in templates/${service_name}/config/*.tmpl; do
+                echo "Processing template file: ${tmpl_file}"
+                output_file=${DATA_ROOT_FOLDER}/${service_name}/config/$(basename "${tmpl_file}" .tmpl)
+                envsubst < "${tmpl_file}" | sudo tee "${output_file}" > /dev/null
+                echo "Created config file: ${output_file}"
+            done
+        else
+            echo "No template files found for ${service_name}."
+        fi
 
-    echo "Created folder structure for service: ${servicename}"
+    fi
+    sudo chown -R ${ownername}:${groupname} ${DATA_ROOT_FOLDER}/${service_name}
+
+    echo "Created folder structure for service: ${service_name}"
 }
 
 function delete_config_and_data_folder(){
-    servicename=$1
+    service_name=$1
 
-    sudo rm -rf ${DATA_ROOT_FOLDER}/${servicename}
+    sudo rm -rf ${DATA_ROOT_FOLDER}/${service_name}
 
-    echo "Deleted folder structure for service: ${servicename}"
+    echo "Deleted folder structure for service: ${service_name}"
 }
 
 
@@ -219,10 +225,10 @@ if [ "$#" -ne 2 ]; then
     return 1
 fi
 
-export command=$1
-export service_name=$2
-eval "export service_image=\${${service_name}_image}"
-export service_script="${script_dir}/${service_name}"
+command=$1
+service_name=$2
+eval "service_image=\${${service_name}_image}"
+service_script="${script_dir}/${service_name}"
 
 if [ ! -f "$service_script" ]; then
     echo "Error: Service script '$service_script' not found."
@@ -245,7 +251,7 @@ if [ "$command" == "run" ]; then
       fresh_container=true
 
       create_config_and_data_folder ${service_name} ${exec_as_user} ${exec_as_group}
-      runsvc
+      runsvc ${service_name} ${service_image}
     fi
     
     ip=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${service_name})
@@ -255,8 +261,7 @@ if [ "$command" == "run" ]; then
     fi
 
     if [ "${fresh_container}" == "true" ] && declare -f post_start_tasks > /dev/null; then
-      echo "Running poststart function for fresh container..."
-      post_start_tasks
+      post_start_tasks ${service_name}
     fi
 
 fi

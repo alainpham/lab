@@ -8,6 +8,9 @@ export service_check_tcponly=false
 
 function runsvc(){
 
+    service_name=$1
+    service_image=$2
+
     docker run -d \
         --name "${service_name}" \
         --hostname "${service_name}" \
@@ -29,4 +32,12 @@ function runsvc(){
         --enable-feature=exemplar-storage \
         --enable-feature=native-histograms \
         --config.file=/etc/prometheus/prometheus.yml
+}
+
+function post_start_tasks(){
+    
+    service_name=$1
+
+    # Add any post-start tasks here
+    return 0
 }
