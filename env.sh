@@ -1,8 +1,5 @@
 #/bin/bash
 
-source "$(dirname "$0")/.secrets/env.sh"
-
-
 export DOCKER_NETWORK_NAME=primenet
 export DOCKER_NETWORK_SUBNET=18
 export DATA_ROOT_FOLDER=/home/${USER}/apps
@@ -165,7 +162,7 @@ function create_config_and_data_folder(){
         for tmpl_file in templates/${servicename}/config/*.tmpl; do
             echo "Processing template file: ${tmpl_file}"
             output_file=${DATA_ROOT_FOLDER}/${servicename}/config/$(basename "${tmpl_file}" .tmpl)
-            envsubst < "${tmpl_file}" | sudo tee "${output_file}"
+            envsubst < "${tmpl_file}" | sudo tee "${output_file}" > /dev/null
             echo "Created config file: ${output_file}"
         done
     fi
