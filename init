@@ -142,6 +142,11 @@ function readiness_check {
             port=$(echo "$url" | cut -d':' -f2)
             nc -z -w5 "$host" "$port"
             res=$?
+            if [ "$res" -eq 0 ]; then
+                res=200
+            else
+                res=0
+            fi
         else
             echo "Attemp $i: Checking $name with http at $url..."
             res=$(curl -f -L -s -m 5 -w "%{http_code}" -o /dev/null "$url")
@@ -149,7 +154,7 @@ function readiness_check {
         
         echo "Response code: $res"
 
-        if [ "$res" -eq "200" ] || [ "$res" -eq "0" ]; then
+        if [ "$res" -eq "200" ]; then
             echo "✅ $name OK"
             break
         else
@@ -214,15 +219,6 @@ if [ "$#" -ne 2 ]; then
     return 1
 fi
 
-
-if [ -z $(docker network ls --filter name=^${DOCKER_NETWORK_NAME}$ --format="{{ .Name }}") ] ; then 
-  echo "Setting up dedicated network bridge.."
-  docker network create --driver=bridge --subnet=172.${DOCKER_NETWORK_SUBNET}.0.0/16 --gateway=172.${DOCKER_NETWORK_SUBNET}.0.1 ${DOCKER_NETWORK_NAME} ; 
-  echo "✅ $DOCKER_NETWORK_NAME docker network created !"
-else
-  echo "✅ $DOCKER_NETWORK_NAME docker network exists !"
-fi
-
 export command=$1
 export service_name=$2
 eval "export service_image=\${${service_name}_image}"
@@ -237,6 +233,8 @@ fi
 source "$service_script"
 
 if [ "$command" == "run" ]; then
+    
+    networking
 
     # start container
     if docker ps -a --format '{{.Names}}' | grep -q "^${service_name}$"; then
@@ -244,7 +242,7 @@ if [ "$command" == "run" ]; then
         docker start ${service_name}
     else
       
-      export fresh_container=true
+      fresh_container=true
 
       create_config_and_data_folder ${service_name} ${exec_as_user} ${exec_as_group}
       runsvc
@@ -256,9 +254,9 @@ if [ "$command" == "run" ]; then
       readiness_check ${service_name} "${ip}${service_check_path}" "$service_check_tcponly"
     fi
 
-    if [ "${fresh_container}" == "true" ] && declare -f post_start_action > /dev/null; then
+    if [ "${fresh_container}" == "true" ] && declare -f post_start_tasks > /dev/null; then
       echo "Running poststart function for fresh container..."
-      post_start_action
+      post_start_tasks
     fi
 
 fi
@@ -282,5 +280,18 @@ if [ "$command" == "destroy" ]; then
   docker rm ${service_name}
   delete_config_and_data_folder ${service_name}
 fi
+
+}
+
+
+function networking(){
+
+  if [ -z $(docker network ls --filter name=^${DOCKER_NETWORK_NAME}$ --format="{{ .Name }}") ] ; then 
+    echo "Setting up dedicated network bridge.."
+    docker network create --driver=bridge --subnet=172.${DOCKER_NETWORK_SUBNET}.0.0/16 --gateway=172.${DOCKER_NETWORK_SUBNET}.0.1 ${DOCKER_NETWORK_NAME} ; 
+  echo "✅ $DOCKER_NETWORK_NAME docker network created !"
+  else
+    echo "✅ $DOCKER_NETWORK_NAME docker network exists !"
+  fi
 
 }

@@ -37,7 +37,7 @@ function runsvc(){
     
 }
 
-function post_start_action(){
+function post_start_tasks(){
     echo "populating keycloak with realms.."
     # Login to Keycloak and retrieve access token
     response=$(curl -s -X POST "https://${service_name}.${WILDCARD_DOMAIN}/realms/master/protocol/openid-connect/token" \
@@ -51,7 +51,7 @@ function post_start_action(){
 
     if [ -z "$access_token" ] || [ "$access_token" == "null" ]; then
         echo "Failed to retrieve access token"
-        exit 1
+        return 1
     fi
 
     # Check if the realm "apps" exists
