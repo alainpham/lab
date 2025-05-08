@@ -1,6 +1,6 @@
 #/bin/bash
 
-source .secrets/env.sh
+source "$(dirname "$0")/.secrets/env.sh"
 
 
 export DOCKER_NETWORK_NAME=primenet

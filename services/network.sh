@@ -1,6 +1,6 @@
 #/bin/bash
 
-source ./env.sh
+source "$(dirname "$0")/env.sh"
 
 echo "Setting up dedicated network bridge.."
 

@@ -2,7 +2,7 @@
 
 export command=$1
 
-source ./env.sh
+source "$(dirname "$0")/env.sh"
 
 # configuration
 export servicename=reg
