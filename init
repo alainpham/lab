@@ -1,5 +1,8 @@
 #/bin/bash
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE}")" && pwd)"
+source $script_dir/initsecrets
+
 export DOCKER_NETWORK_NAME=primenet
 export DOCKER_NETWORK_SUBNET=18
 export DATA_ROOT_FOLDER=/home/${USER}/apps
@@ -180,3 +183,78 @@ function delete_config_and_data_folder(){
     echo "Deleted folder structure for service: ${servicename}"
 }
 
+
+function lab(){
+
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <command> <service_name>"
+    exit 1
+fi
+
+if [ -z $(docker network ls --filter name=^${DOCKER_NETWORK_NAME}$ --format="{{ .Name }}") ] ; then 
+  echo "Setting up dedicated network bridge.."
+  docker network create --driver=bridge --subnet=172.${DOCKER_NETWORK_SUBNET}.0.0/16 --gateway=172.${DOCKER_NETWORK_SUBNET}.0.1 ${DOCKER_NETWORK_NAME} ; 
+  echo "✅ $DOCKER_NETWORK_NAME docker network created !"
+fi
+
+export command=$1
+export service_name=$1
+eval "export service_image=\${${service_name}_image}"
+export service_script="$(dirname "$0")/${service_name}"
+
+if [ ! -f "$service_script" ]; then
+    echo "Error: Service script '$service_script' not found."
+    exit 1
+fi
+
+#script should define function service_name_run, and export http port and servicecheckpath
+source "$service_script"
+
+if [ "$command" == "run" ]; then
+
+    # start container
+    if docker ps -a --format '{{.Names}}' | grep -q "^${service_name}$"; then
+        echo "Container ${service_name} exists. Starting it..."
+        docker start ${service_name}
+    else
+      
+      export fresh_container=true
+
+      create_config_and_data_folder ${service_name} ${exec_as_user} ${exec_as_group}
+      runsvc
+    fi
+    
+    ip=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${service_name})
+    
+    if [ -n "${service_check_path}" ]; then
+      http_readiness_check ${service_name} "${ip}${service_check_path}"
+    fi
+
+    if [ "${fresh_container}" == "true" ] && declare -f post_start_action > /dev/null; then
+      echo "Running poststart function for fresh container..."
+      post_start_action
+    fi
+
+fi
+
+if [ "$command" == "stop" ]; then
+  echo "Stopping container ${service_name}..."
+  docker stop ${service_name}
+fi
+
+if [ "$command" == "rm" ]; then
+  echo "Stopping container ${service_name}..."
+  docker stop ${service_name}
+  echo "Removing container ${service_name}..."
+  docker rm ${service_name}
+fi
+
+if [ "$command" == "destroy" ]; then
+  echo "Stopping container ${service_name}..."
+  docker stop ${service_name}
+  echo "Removing container ${service_name}..."
+  docker rm ${service_name}
+  delete_config_and_data_folder ${service_name}
+fi
+
+}
