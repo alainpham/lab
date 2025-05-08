@@ -36,7 +36,7 @@ if [ "$command" == "start" ]; then
         -l "traefik.http.routers.${servicename}.entrypoints=https" \
         -l "traefik.http.routers.${servicename}.tls=true" \
         -l "traefik.http.routers.${servicename}.rule=Host(\`${servicename}.${WILDCARD_DOMAIN}\`)" \
-        -p "${EXPOSE_BINDADDRESS}:25000:5000" \
+        -p "${EXPOSE_BINDADDRESS}:5000:5000" \
         ${reg_image}
     fi
     
