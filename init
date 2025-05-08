@@ -1,6 +1,6 @@
 #/bin/bash
 
-script_dir="$(cd "$(dirname "${BASH_SOURCE}")" && pwd)"
+export script_dir="$(cd "$(dirname "${BASH_SOURCE}")" && pwd)"
 source $script_dir/initsecrets
 
 export DOCKER_NETWORK_NAME=primenet
@@ -186,10 +186,21 @@ function delete_config_and_data_folder(){
 
 function lab(){
 
+if [ "$1" == "help" ]; then
+  echo "Available commands:"
+  echo "  run <service_name>      - Start or create and start the specified service."
+  echo "  stop <service_name>     - Stop the specified service."
+  echo "  rm <service_name>       - Remove the specified service container."
+  echo "  destroy <service_name>  - Stop, remove the container, and delete its configuration and data."
+  echo "  help                    - Display this help message."
+  return 0
+fi
+
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <command> <service_name>"
-    exit 1
+    return 1
 fi
+
 
 if [ -z $(docker network ls --filter name=^${DOCKER_NETWORK_NAME}$ --format="{{ .Name }}") ] ; then 
   echo "Setting up dedicated network bridge.."
@@ -198,13 +209,13 @@ if [ -z $(docker network ls --filter name=^${DOCKER_NETWORK_NAME}$ --format="{{ 
 fi
 
 export command=$1
-export service_name=$1
+export service_name=$2
 eval "export service_image=\${${service_name}_image}"
-export service_script="$(dirname "$0")/${service_name}"
+export service_script="${script_dir}/${service_name}"
 
 if [ ! -f "$service_script" ]; then
     echo "Error: Service script '$service_script' not found."
-    exit 1
+    return 1
 fi
 
 #script should define function service_name_run, and export http port and servicecheckpath
