@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source "$(dirname "$0")/env.sh"
-source "$(dirname "$0")/.secrets/env.sh"
+source "$(dirname "$0")/env"
+source "$(dirname "$0")/envsecret"
 
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <service_name> <command>"
@@ -11,7 +11,7 @@ fi
 export service_name=$1
 eval "export service_image=\${${service_name}_image}"
 export command=$2
-export service_script="$(dirname "$0")/services/${service_name}.sh"
+export service_script="$(dirname "$0")/services/${service_name}"
 
 if [ ! -f "$service_script" ]; then
     echo "Error: Service script '$service_script' not found."
@@ -67,3 +67,5 @@ if [ "$command" == "destroy" ]; then
   docker rm ${service_name}
   delete_config_and_data_folder ${service_name}
 fi
+
+
