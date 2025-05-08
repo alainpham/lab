@@ -6,8 +6,8 @@ source ./env.sh
 
 # configuration
 export servicename=model
-export exec_as_user=root
-export exec_as_group=root
+export exec_as_user=1000
+export exec_as_group=1000
 
 if [ "$command" == "start" ]; then
 
@@ -27,6 +27,7 @@ if [ "$command" == "start" ]; then
         --restart unless-stopped \
         --user "${exec_as_user}:${exec_as_group}" \
         --network ${DOCKER_NETWORK_NAME} \
+        -e "ENV_VAR=VALUE" \
         -v "${DATA_ROOT_FOLDER}/${servicename}/config:/config:ro" \
         -v "${DATA_ROOT_FOLDER}/${servicename}/data:/data:rw" \
         -l "traefik.enable=true" \
@@ -36,7 +37,7 @@ if [ "$command" == "start" ]; then
         -l "traefik.http.routers.${servicename}.entrypoints=https" \
         -l "traefik.http.routers.${servicename}.tls=true" \
         -l "traefik.http.routers.${servicename}.rule=Host(\`${servicename}.${WILDCARD_DOMAIN}\`)" \
-        -p "8080:8080" \
+        -p "${EXPOSE_BINDADDRESS}:8080:8080" \
         ${model_image} \
         model -configFile=/config/config.yaml
     fi
@@ -50,6 +51,13 @@ fi
 if [ "$command" == "stop" ]; then
   echo "Stopping container ${servicename}..."
   docker stop ${servicename}
+fi
+
+if [ "$command" == "rm" ]; then
+  echo "Stopping container ${servicename}..."
+  docker stop ${servicename}
+  echo "Removing container ${servicename}..."
+  docker rm ${servicename}
 fi
 
 if [ "$command" == "destroy" ]; then

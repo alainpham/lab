@@ -5,9 +5,9 @@ export command=$1
 source ./env.sh
 
 # configuration
-export servicename=portainer
-export exec_as_user=0
-export exec_as_group=0
+export servicename=reg
+export exec_as_user=1000
+export exec_as_group=1000
 
 if [ "$command" == "start" ]; then
 
@@ -27,23 +27,22 @@ if [ "$command" == "start" ]; then
         --restart unless-stopped \
         --user "${exec_as_user}:${exec_as_group}" \
         --network ${DOCKER_NETWORK_NAME} \
-        -v "${DATA_ROOT_FOLDER}/${servicename}/data:/data:rw" \
-        -v "/var/run/docker.sock:/var/run/docker.sock:rw" \
+        -e "REGISTRY_STORAGE_DELETE_ENABLED=true" \
+        -v "${DATA_ROOT_FOLDER}/${servicename}/data:/var/lib/registry:rw" \
         -l "traefik.enable=true" \
-        -l "traefik.http.services.${servicename}.loadbalancer.server.port=9000" \
+        -l "traefik.http.services.${servicename}.loadbalancer.server.port=5000" \
         -l "traefik.http.services.${servicename}.loadbalancer.server.scheme=http" \
         -l "traefik.http.routers.${servicename}.service=${servicename}" \
         -l "traefik.http.routers.${servicename}.entrypoints=https" \
         -l "traefik.http.routers.${servicename}.tls=true" \
         -l "traefik.http.routers.${servicename}.rule=Host(\`${servicename}.${WILDCARD_DOMAIN}\`)" \
-        -p "${EXPOSE_BINDADDRESS}:9000:9000" \
-        ${portainer_image} \
-        --admin-password '$2y$05$lTZ0k373NHegEJjfvCfqSOZCKQHMU2K.xmKYj4FWB5r/YbbOgTV9W'
+        -p "${EXPOSE_BINDADDRESS}:25000:5000" \
+        ${reg_image}
     fi
     
     ip=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${servicename})
     
-    http_readiness_check ${servicename} ${ip}:9000
+    http_readiness_check ${servicename} ${ip}:5000/v2/
 
 fi
 

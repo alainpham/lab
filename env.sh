@@ -69,9 +69,9 @@ export artemis_image=apache/activemq-artemis:2.41.0
 # https://hub.docker.com/r/portainer/portainer-ce/tags?page=1&name=2.
 export portainer_image=portainer/portainer-ce:2.27.5
 # https://hub.docker.com/_/registry/tags?page=1&name=2.
-export docker_registry_image=docker.io/registry:2.8.3
+export reg_image=docker.io/registry:2.8.3
 # https://hub.docker.com/r/joxit/docker-registry-ui/tags?page=1&name=2.
-export docker_registry_ui_image=joxit/docker-registry-ui:2.5.7
+export rui_image=joxit/docker-registry-ui:2.5.7
 # https://hub.docker.com/_/traefik/tags?page=1&name=3.
 # https://github.com/traefik/traefik/releases 
 export traefik_image=docker.io/traefik:3.4.0

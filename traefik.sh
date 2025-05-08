@@ -57,6 +57,13 @@ if [ "$command" == "stop" ]; then
   docker stop ${servicename}
 fi
 
+if [ "$command" == "rm" ]; then
+  echo "Stopping container ${servicename}..."
+  docker stop ${servicename}
+  echo "Removing container ${servicename}..."
+  docker rm ${servicename}
+fi
+
 if [ "$command" == "destroy" ]; then
   echo "Stopping container ${servicename}..."
   docker stop ${servicename}
