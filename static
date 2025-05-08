@@ -4,6 +4,7 @@
 export exec_as_user=1000
 export exec_as_group=1000
 export service_check_path=":80"
+export service_check_tcponly=false
 
 function runsvc(){
 

@@ -128,15 +128,28 @@ export windows_image=dockurr/windows:4.35
 
 # Helper functions
 
-function http_readiness_check {
+function readiness_check {
     name=$1
     url=$2
+    tcponly=$3
     retries=60
     echo "Checking readiness of $name at $url..."
     for i in $(seq 1 "$retries"); do
-        echo "Attempt $i: Checking $name at $url..."
-        res=$(curl -f -L -s -m 5 -w "%{http_code}" -o /dev/null "$url")
-        if [ "$res" -eq "200" ]; then
+        
+        if [ "$tcponly" == "true" ]; then
+            echo "Attemp $i: Checking $name with tcp at $url..."
+            host=$(echo "$url" | cut -d':' -f1)
+            port=$(echo "$url" | cut -d':' -f2)
+            nc -z -w5 "$host" "$port"
+            res=$?
+        else
+            echo "Attemp $i: Checking $name with http at $url..."
+            res=$(curl -f -L -s -m 5 -w "%{http_code}" -o /dev/null "$url")
+        fi
+        
+        echo "Response code: $res"
+
+        if [ "$res" -eq "200" ] || [ "$res" -eq "0" ]; then
             echo "✅ $name OK"
             break
         else
@@ -206,6 +219,8 @@ if [ -z $(docker network ls --filter name=^${DOCKER_NETWORK_NAME}$ --format="{{ 
   echo "Setting up dedicated network bridge.."
   docker network create --driver=bridge --subnet=172.${DOCKER_NETWORK_SUBNET}.0.0/16 --gateway=172.${DOCKER_NETWORK_SUBNET}.0.1 ${DOCKER_NETWORK_NAME} ; 
   echo "✅ $DOCKER_NETWORK_NAME docker network created !"
+else
+  echo "✅ $DOCKER_NETWORK_NAME docker network exists !"
 fi
 
 export command=$1
@@ -238,7 +253,7 @@ if [ "$command" == "run" ]; then
     ip=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' ${service_name})
     
     if [ -n "${service_check_path}" ]; then
-      http_readiness_check ${service_name} "${ip}${service_check_path}"
+      readiness_check ${service_name} "${ip}${service_check_path}" "$service_check_tcponly"
     fi
 
     if [ "${fresh_container}" == "true" ] && declare -f post_start_action > /dev/null; then
