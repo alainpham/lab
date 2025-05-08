@@ -260,7 +260,7 @@ if [ "$command" == "run" ]; then
       readiness_check ${service_name} "${ip}${service_check_path}" "$service_check_tcponly"
     fi
 
-    if [ "${fresh_container}" == "true" ] && declare -f post_start_tasks > /dev/null; then
+    if [ "${fresh_container}" == "true" ]; then
       post_start_tasks ${service_name}
     fi
 
