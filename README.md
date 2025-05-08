@@ -16,5 +16,7 @@ rui.sh start
 reposilite.sh start
 static.sh start
 
+# observability
+prometheus.sh start
 
 ```

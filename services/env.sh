@@ -134,7 +134,7 @@ function http_readiness_check {
     echo "Checking readiness of $name at $url..."
     for i in $(seq 1 "$retries"); do
         echo "Attempt $i: Checking $name at $url..."
-        res=$(curl -f -s -m 5 -w "%{http_code}" -o /dev/null "$url")
+        res=$(curl -f -L -s -m 5 -w "%{http_code}" -o /dev/null "$url")
         if [ "$res" -eq "200" ]; then
             echo "✅ $name OK"
             break
