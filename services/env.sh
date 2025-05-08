@@ -9,14 +9,40 @@ export DATA_ROOT_FOLDER=/home/${USER}/apps
 export WILDCARD_DOMAIN=zez.duckdns.org
 export EXPOSE_BINDADDRESS=127.0.0.1
 
+# Platform
+
+# https://hub.docker.com/_/traefik/tags?page=1&name=3.
+# https://github.com/traefik/traefik/releases 
+export traefik_image=docker.io/traefik:3.4.0
+# https://hub.docker.com/r/portainer/portainer-ce/tags?page=1&name=2.
+export portainer_image=portainer/portainer-ce:2.27.5
+
+# Repos
+
+# https://hub.docker.com/_/registry/tags?page=1&name=2.
+export reg_image=docker.io/registry:2.8.3
+# https://hub.docker.com/r/joxit/docker-registry-ui/tags?page=1&name=2.
+export rui_image=joxit/docker-registry-ui:2.5.7
+# https://hub.docker.com/r/dzikoysk/reposilite/tags?page=1&name=3.
+export reposilite_image=dzikoysk/reposilite:3.5.23
+# https://hub.docker.com/r/joseluisq/static-web-server/tags
+export static_image=joseluisq/static-web-server:2.33.1
+
 # Minio
+
 # https://hub.docker.com/r/minio/minio/tags
 export minio_image=minio/minio:RELEASE.2025-04-22T22-12-26Z
+
+# IDP
+
+# https://quay.io/repository/keycloak/keycloak?tab=tags&tag=latest
+export keycloak_image=quay.io/keycloak/keycloak:26.2.3-0
 
 # Observability stack
 
 # https://hub.docker.com/r/prom/prometheus/tags?page=1&name=3.
 export prometheus_image=prom/prometheus:v3.3.1
+
 # https://hub.docker.com/r/prom/alertmanager/tags?page=1&name=0.
 export alertmanager_image=prom/alertmanager:v0.28.1
 
@@ -51,13 +77,12 @@ export postgres_image=docker.io/postgres:17.4
 # https://hub.docker.com/_/elasticsearch
 export elasticsearch_image=docker.io/elasticsearch:8.18.0
 export kibana_image=docker.io/kibana:8.18.0
-
 # oracledb: container-registry.oracle.com/database/free:23.3.0.0
 export oracledb_image=oracledb:19.3.0
 # https://hub.docker.com/_/adminer/tags?page=1&name=4.
 export adminer_image=docker.io/adminer:5.2.1
 
-# messaging
+# Messaging
 # https://quay.io/repository/strimzi/kafka?tab=tags&tag=latest
 export kafka_image=apache/kafka:4.0.0
 # https://hub.docker.com/r/obsidiandynamics/kafdrop/tags?page=1&name=4.
@@ -65,21 +90,7 @@ export kafdrop_image=obsidiandynamics/kafdrop:4.1.0
 # https://hub.docker.com/r/apache/activemq-artemis/tags?page=1&name=2.
 export artemis_image=apache/activemq-artemis:2.41.0
 
-# platform essentials
-# https://hub.docker.com/r/portainer/portainer-ce/tags?page=1&name=2.
-export portainer_image=portainer/portainer-ce:2.27.5
-# https://hub.docker.com/_/registry/tags?page=1&name=2.
-export reg_image=docker.io/registry:2.8.3
-# https://hub.docker.com/r/joxit/docker-registry-ui/tags?page=1&name=2.
-export rui_image=joxit/docker-registry-ui:2.5.7
-# https://hub.docker.com/_/traefik/tags?page=1&name=3.
-# https://github.com/traefik/traefik/releases 
-export traefik_image=docker.io/traefik:3.4.0
-
-# https://quay.io/repository/keycloak/keycloak?tab=tags&tag=latest
-export keycloak_image=quay.io/keycloak/keycloak:26.2.3-0
-# https://hub.docker.com/r/dzikoysk/reposilite/tags?page=1&name=3.
-export reposilite_image=dzikoysk/reposilite:3.5.23
+# Homelab
 
 # https://hub.docker.com/r/linuxserver/jellyfin/tags?page=1&name=10.
 export jellyfin_image=linuxserver/jellyfin:10.10.7
@@ -100,9 +111,6 @@ export nextcloud_image=linuxserver/nextcloud:31.0.4
 # https://hub.docker.com/r/linuxserver/homeassistant/tags
 export homeassistant_image=linuxserver/homeassistant:2025.4.4
 
-# https://hub.docker.com/r/joseluisq/static-web-server/tags
-export static_image=joseluisq/static-web-server:2.33.1
-
 # https://hub.docker.com/r/syncthing/syncthing/tags?page=&page_size=&ordering=&name=1.
 export syncthing_image=syncthing/syncthing:1.29.6
 
@@ -112,11 +120,12 @@ export ollama_image=ollama/ollama:0.6.8
 # https://github.com/open-webui/open-webui/pkgs/container/open-webui/versions
 export openwebui_image=ghcr.io/open-webui/open-webui:0.6.7
 
+# Windows
+
 # https://hub.docker.com/r/dockurr/windows/tags
 export windows_image=dockurr/windows:4.35
 
-
-# helper functions
+# Helper functions
 
 function http_readiness_check {
     name=$1
