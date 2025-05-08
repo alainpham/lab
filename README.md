@@ -1,22 +1,38 @@
 # Deploying a lab
 
 ```sh
-export PATH=$PATH:$(pwd)/services
 
 # docker network
 network.sh
 
 # essentials
-traefik.sh start
-portainer.sh start
+./lab.sh traefik start
+./lab.sh portainer start
 
 # repos
-reg.sh start
-rui.sh start
-reposilite.sh start
-static.sh start
+./lab.sh reg start
+./lab.sh rui start
+./lab.sh reposilite start
+./lab.sh static start
 
 # observability
-prometheus.sh start
+./lab.sh prometheus start
 
+```
+
+Destroy everything
+
+```sh
+# essentials
+./lab.sh traefik destroy
+./lab.sh portainer destroy
+
+# repos
+./lab.sh reg destroy
+./lab.sh rui destroy
+./lab.sh reposilite destroy
+./lab.sh static destroy
+
+# observability
+./lab.sh prometheus destroy
 ```

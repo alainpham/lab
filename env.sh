@@ -11,6 +11,7 @@ export EXPOSE_BINDADDRESS=127.0.0.1
 # https://hub.docker.com/_/traefik/tags?page=1&name=3.
 # https://github.com/traefik/traefik/releases 
 export traefik_image=docker.io/traefik:3.4.0
+
 # https://hub.docker.com/r/portainer/portainer-ce/tags?page=1&name=2.
 export portainer_image=portainer/portainer-ce:2.27.5
 
