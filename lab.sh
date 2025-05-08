@@ -28,6 +28,9 @@ if [ "$command" == "start" ]; then
         echo "Container ${service_name} exists. Starting it..."
         docker start ${service_name}
     else
+      
+      export fresh_container=true
+
       create_config_and_data_folder ${service_name} ${exec_as_user} ${exec_as_group}
       runsvc
     fi
@@ -36,6 +39,11 @@ if [ "$command" == "start" ]; then
     
     if [ -n "${service_check_path}" ]; then
       http_readiness_check ${service_name} "${ip}${service_check_path}"
+    fi
+
+    if [ "${fresh_container}" == "true" ] && declare -f post_start_action > /dev/null; then
+      echo "Running poststart function for fresh container..."
+      post_start_action
     fi
 
 fi

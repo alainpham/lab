@@ -15,6 +15,9 @@ network.sh
 ./lab.sh reposilite start
 ./lab.sh static start
 
+# idp
+./lab.sh keycloak start
+
 # observability
 ./lab.sh prometheus start
 
@@ -32,6 +35,9 @@ Destroy everything
 ./lab.sh rui destroy
 ./lab.sh reposilite destroy
 ./lab.sh static destroy
+
+# idp
+./lab.sh keycloak destroy
 
 # observability
 ./lab.sh prometheus destroy

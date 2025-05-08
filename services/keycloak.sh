@@ -35,3 +35,48 @@ function runsvc(){
         start
     
 }
+
+function post_start_action(){
+    echo "populating keycloak with realms.."
+    # Login to Keycloak and retrieve access token
+    response=$(curl -s -X POST "https://${service_name}.${WILDCARD_DOMAIN}/realms/master/protocol/openid-connect/token" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "grant_type=password" \
+        -d "client_id=admin-cli" \
+        -d "username=admin" \
+        -d "password=password")
+
+    access_token=$(echo "$response" | jq -r '.access_token')
+
+    if [ -z "$access_token" ] || [ "$access_token" == "null" ]; then
+        echo "Failed to retrieve access token"
+        exit 1
+    fi
+
+    # Check if the realm "apps" exists
+    realm_exists=$(curl -s -o /dev/null -w "%{http_code}" -X GET "https://${service_name}.${WILDCARD_DOMAIN}/admin/realms/apps" \
+        -H "Authorization: Bearer $access_token")
+
+    if [ "$realm_exists" -eq 200 ]; then
+        echo "Realm 'apps' exists. Deleting it..."
+        status=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE "https://${service_name}.${WILDCARD_DOMAIN}/admin/realms/apps" \
+            -H "Authorization: Bearer $access_token")
+        if [ "$status" -eq 204 ]; then
+            echo "✅ Realm 'apps' deleted successfully."
+        else
+            echo "❌ Failed to delete realm 'apps'. Status code: $status"
+        fi
+    fi
+
+    echo "Creating realm 'apps'..."
+    status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "https://${service_name}.${WILDCARD_DOMAIN}/admin/realms/" \
+        -H "Authorization: Bearer $access_token" \
+        -H "Content-Type: application/json" \
+        --data-binary "@${DATA_ROOT_FOLDER}/${service_name}/config/apps-realm.json")
+    if [ "$status" -eq 201 ]; then
+        echo "✅ Realm 'apps' created successfully."
+    else
+        echo "❌ Failed to create realm 'apps'. Status code: $status"
+    fi
+
+}
