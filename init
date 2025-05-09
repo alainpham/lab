@@ -49,6 +49,7 @@ export alertmanager_image=prom/alertmanager:v0.28.1
 
 # https://hub.docker.com/r/grafana/loki/tags?page=1&name=3.
 export loki_image=grafana/loki:3.5.0
+
 # https://hub.docker.com/r/grafana/tempo/tags?page=1&name=2.
 export tempo_image=grafana/tempo:2.7.2
 

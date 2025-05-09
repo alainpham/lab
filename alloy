@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# configuration
+export exec_as_user=0
+export exec_as_group=0
+export service_check_path=":12345/ready"
+export service_check_tcponly=false
+
+function runsvc(){
+
+    service_name=$1
+    service_image=$2
+
+    docker run -d \
+        --name "${service_name}" \
+        --hostname "${service_name}" \
+        --restart unless-stopped \
+        --user "${exec_as_user}:${exec_as_group}" \
+        --network ${DOCKER_NETWORK_NAME} \
+        -e "ENV_VAR=VALUE" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config:ro" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data:rw" \
+        -v ":/host/root:ro,rslave" \
+        -v "/sys:/host/sys:ro,rslave" \
+        -v "/etc/hostname:/etc/alloy/hostname:ro" \
+        -v "/proc:/host/proc:ro,rslave" \
+        -v "/var/run/docker.sock:/var/run/docker.sock:rw" \
+        -l "traefik.enable=true" \
+        -l "traefik.http.services.${service_name}.loadbalancer.server.port=12345" \
+        -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
+        -l "traefik.http.routers.${service_name}.service=${service_name}" \
+        -l "traefik.http.routers.${service_name}.entrypoints=https" \
+        -l "traefik.http.routers.${service_name}.tls=true" \
+        -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
+        \
+        -l "traefik.http.services.${service_name}otel.loadbalancer.server.port=4318" \
+        -l "traefik.http.services.${service_name}otel.loadbalancer.server.scheme=http" \
+        -l "traefik.http.routers.${service_name}otel.service=${service_name}otel" \
+        -l "traefik.http.routers.${service_name}otel.entrypoints=https" \
+        -l "traefik.http.routers.${service_name}otel.tls=true" \
+        -l "traefik.http.routers.${service_name}otel.rule=Host(\`${service_name}otel.${WILDCARD_DOMAIN}\`)" \
+        -p "${EXPOSE_BINDADDRESS}:12345:12345" \
+        -p "${EXPOSE_BINDADDRESS}:4317:4317" \
+        -p "${EXPOSE_BINDADDRESS}:4318:4318" \
+        ${service_image} \
+        run \
+        --server.http.listen-addr=0.0.0.0:12345 \
+        --storage.path=/data \
+        /config/config.alloy
+}
+
+function post_start_tasks(){
+    
+    service_name=$1
+
+    # Add any post-start tasks here
+    return 0
+}

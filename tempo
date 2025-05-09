@@ -3,7 +3,7 @@
 # configuration
 export exec_as_user=1000
 export exec_as_group=1000
-export service_check_path=":3100/ready"
+export service_check_path=":3200/ready"
 export service_check_tcponly=false
 
 function runsvc(){
@@ -17,24 +17,36 @@ function runsvc(){
         --restart unless-stopped \
         --user "${exec_as_user}:${exec_as_group}" \
         --network ${DOCKER_NETWORK_NAME} \
+        -e "ENV_VAR=VALUE" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config:ro" \
-        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data/loki:rw" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data/tempo:rw" \
         -l "traefik.enable=true" \
-        -l "traefik.http.services.${service_name}.loadbalancer.server.port=3100" \
+        -l "traefik.http.services.${service_name}.loadbalancer.server.port=3200" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
         -l "traefik.http.routers.${service_name}.service=${service_name}" \
         -l "traefik.http.routers.${service_name}.entrypoints=https" \
         -l "traefik.http.routers.${service_name}.tls=true" \
         -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
-        -p "${EXPOSE_BINDADDRESS}:3100:3100" \
+        \
+        -l "traefik.http.services.${service_name}otel.loadbalancer.server.port=4418" \
+        -l "traefik.http.services.${service_name}otel.loadbalancer.server.scheme=http" \
+        -l "traefik.http.routers.${service_name}otel.service=${service_name}otel" \
+        -l "traefik.http.routers.${service_name}otel.entrypoints=https" \
+        -l "traefik.http.routers.${service_name}otel.tls=true" \
+        -l "traefik.http.routers.${service_name}otel.rule=Host(\`${service_name}otel.${WILDCARD_DOMAIN}\`)" \
+        \
+        -p "${EXPOSE_BINDADDRESS}:3200:3200" \
+        -p "${EXPOSE_BINDADDRESS}:4417:4417" \
+        -p "${EXPOSE_BINDADDRESS}:4418:4418" \
         ${service_image} \
         -config.file=/config/config.yaml
     
 }
 
 function post_start_tasks(){
-    # Add any post-start tasks here
-    service_name=$1
     
+    service_name=$1
+
+    # Add any post-start tasks here
     return 0
 }
