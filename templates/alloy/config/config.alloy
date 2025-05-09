@@ -145,6 +145,7 @@ declare "journal_module" {
       max_age       = "12h0m0s"
       forward_to    = [loki.process.default.receiver]
       relabel_rules = loki.relabel.default.rules
+      path  = "/var/log/journal"
   }
 
   loki.relabel "default" {

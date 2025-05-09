@@ -25,6 +25,7 @@ function runsvc(){
         -v "/etc/hostname:/etc/alloy/hostname:ro" \
         -v "/proc:/host/proc:ro,rslave" \
         -v "/var/run/docker.sock:/var/run/docker.sock:rw" \
+        -v /var/log/journal:/var/log/journal:ro,rslave \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=12345" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
