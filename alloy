@@ -13,19 +13,18 @@ function runsvc(){
 
     docker run -d \
         --name "${service_name}" \
-        --hostname "${service_name}" \
         --restart unless-stopped \
         --user "${exec_as_user}:${exec_as_group}" \
         --network ${DOCKER_NETWORK_NAME} \
-        -e "ENV_VAR=VALUE" \
+        --pid="host" \
+        --uts="host" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config:ro" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data:rw" \
-        -v ":/host/root:ro,rslave" \
+        -v "/:/host/root:ro,rslave" \
         -v "/sys:/host/sys:ro,rslave" \
-        -v "/etc/hostname:/etc/alloy/hostname:ro" \
         -v "/proc:/host/proc:ro,rslave" \
         -v "/var/run/docker.sock:/var/run/docker.sock:rw" \
-        -v /var/log/journal:/var/log/journal:ro,rslave \
+        -v "/var/log/journal:/var/log/journal:ro,rslave" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=12345" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \

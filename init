@@ -13,7 +13,7 @@ export EXPOSE_BINDADDRESS=127.0.0.1
 
 # https://hub.docker.com/_/traefik/tags?page=1&name=3.
 # https://github.com/traefik/traefik/releases 
-export traefik_image=docker.io/traefik:3.4.0
+export traefik_image=docker.io/traefik:3.3.7
 
 # https://hub.docker.com/r/portainer/portainer-ce/tags?page=1&name=2.
 export portainer_image=portainer/portainer-ce:2.27.5
@@ -44,9 +44,6 @@ export keycloak_image=quay.io/keycloak/keycloak:26.2.3-0
 # https://hub.docker.com/r/prom/prometheus/tags?page=1&name=3.
 export prometheus_image=prom/prometheus:v3.3.1
 
-# https://hub.docker.com/r/prom/alertmanager/tags?page=1&name=0.
-export alertmanager_image=prom/alertmanager:v0.28.1
-
 # https://hub.docker.com/r/grafana/loki/tags?page=1&name=3.
 export loki_image=grafana/loki:3.5.0
 
@@ -68,6 +65,10 @@ export node_exporter_image=prom/node-exporter:v1.9.1
 
 # https://console.cloud.google.com/gcr/images/cadvisor/GLOBAL/cadvisor
 export cadvisor_image=gcr.io/cadvisor/cadvisor:v0.52.1
+
+# https://hub.docker.com/r/prom/alertmanager/tags?page=1&name=0.
+export alertmanager_image=prom/alertmanager:v0.28.1
+
 
 # Databases
 # https://hub.docker.com/_/mariadb
@@ -239,7 +240,22 @@ fi
 #script should define function service_name_run, and export http port and servicecheckpath
 source "$service_script"
 
-if [ "$command" == "run" ]; then
+if [ "$command" == "stop" ] || [ "$command" == "rm" ] || [ "$command" == "destroy" ] || [ "$command" == "rerun" ]; then
+  echo "Stopping container ${service_name}..."
+  docker stop ${service_name}
+fi
+
+if [ "$command" == "rm" ] || [ "$command" == "destroy" ] || [ "$command" == "rerun" ]; then
+  echo "Removing container ${service_name}..."
+  docker rm ${service_name}
+fi
+
+if [ "$command" == "destroy" ] || [ "$command" == "rerun" ]; then
+  delete_config_and_data_folder ${service_name}
+fi
+
+
+if [ "$command" == "rerun" ] || [ "$command" == "run" ] ; then
     
     networking
 
@@ -267,25 +283,7 @@ if [ "$command" == "run" ]; then
 
 fi
 
-if [ "$command" == "stop" ]; then
-  echo "Stopping container ${service_name}..."
-  docker stop ${service_name}
-fi
 
-if [ "$command" == "rm" ]; then
-  echo "Stopping container ${service_name}..."
-  docker stop ${service_name}
-  echo "Removing container ${service_name}..."
-  docker rm ${service_name}
-fi
-
-if [ "$command" == "destroy" ]; then
-  echo "Stopping container ${service_name}..."
-  docker stop ${service_name}
-  echo "Removing container ${service_name}..."
-  docker rm ${service_name}
-  delete_config_and_data_folder ${service_name}
-fi
 
 }
 

@@ -20,6 +20,9 @@ lab run keycloak
 # observability
 lab run prometheus
 lab run loki
+lab run tempo
+lab run alloy
+lab run grafana
 
 ```
 
@@ -44,4 +47,8 @@ lab destroy keycloak
 # observability
 lab destroy prometheus
 lab destroy loki
+lab destroy tempo
+lab destroy alloy
+lab destroy grafana
+
 ```
