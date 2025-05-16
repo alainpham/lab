@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# configuration
+export exec_as_user=1000
+export exec_as_group=1000
+export service_check_path=":5432"
+export service_check_tcponly=true
+
+function runsvc(){
+
+    service_name=$1
+    service_image=$2
+
+    docker run -d \
+        --name "${service_name}" \
+        --hostname "${service_name}" \
+        --restart unless-stopped \
+        --user "${exec_as_user}:${exec_as_group}" \
+        --network ${DOCKER_NETWORK_NAME} \
+        -e "POSTGRES_USER=admin" \
+        -e "POSTGRES_PASSWORD=password" \
+        -e "POSTGRES_DB=db" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/var/lib/postgresql/data:rw" \
+        -l "traefik.enable=false" \
+        -p "${EXPOSE_BINDADDRESS}:5432:5432" \
+        ${service_image}
+    
+}
+
+function post_start_tasks(){
+    
+    service_name=$1
+
+    docker exec  "${service_name}" psql -U admin -d db -c "CREATE TABLE IF NOT EXISTS people (id SERIAL PRIMARY KEY, name TEXT NOT NULL, age INT);"
+    docker exec  "${service_name}" psql -U admin -d db -c "INSERT INTO people (name, age) VALUES ('Alice', 30);"
+    docker exec  "${service_name}" psql -U admin -d db -c "INSERT INTO people (name, age) VALUES ('Bob', 25);"
+    docker exec  "${service_name}" psql -U admin -d db -c "INSERT INTO people (name, age) VALUES ('Charlie', 35);"
+    docker exec  "${service_name}" psql -U admin -d db -c "INSERT INTO people (name, age) VALUES ('Diana', 28);"
+    docker exec  "${service_name}" psql -U admin -d db -c "INSERT INTO people (name, age) VALUES ('Eve', 40);"
+    docker exec  "${service_name}" psql -U admin -d db -c "SELECT * FROM people;"
+    return 0
+}
