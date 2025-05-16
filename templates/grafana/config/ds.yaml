@@ -63,3 +63,19 @@ datasources:
     typeLogoUrl: "public/app/plugins/datasource/grafana-testdata-datasource/img/testdata.svg"
     access: proxy
     editable: true
+
+  - name: postgres
+    uid: postgres
+    type: postgres
+    url: postgres:5432
+    editable: true
+    database: db
+    user: admin
+    secureJsonData:
+      password: 'password'
+    jsonData:
+      sslmode: 'disable' 
+      maxOpenConns: 5 
+      maxIdleConns: 2
+      connMaxLifetime: 14400 
+      timescaledb: false
