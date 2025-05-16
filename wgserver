@@ -32,7 +32,7 @@ function runsvc(){
         -e LOG_CONFS=true `#optional` \
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/config:rw" \
         -l "traefik.enable=false" \
-        -p 51820:51820/udp \
+        -p 53921:53921/udp \
         ${service_image} \
     
 }
