@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# configuration
+export exec_as_user=1000
+export exec_as_group=1000
+export service_check_path=""
+export service_check_tcponly=true
+
+function runsvc(){
+
+    service_name=$1
+    service_image=$2
+
+    docker run -d \
+        --name "${service_name}" \
+        --hostname "${service_name}" \
+        --restart unless-stopped \
+        --network ${DOCKER_NETWORK_NAME} \
+        --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
+        --cap-add=NET_ADMIN \
+        -e PUID=${exec_as_user} \
+        -e PGID=${exec_as_group} \
+        -e TZ=Europe/Paris \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config/wg_confs:ro" \
+        -l "traefik.enable=false" \
+        ${service_image}
+    
+}
+
+function post_start_tasks(){
+    
+    service_name=$1
+
+    # Add any post-start tasks here
+    return 0
+}

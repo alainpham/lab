@@ -97,7 +97,8 @@ export rentman_image=registry.awon.cpss.duckdns.org/rentman:1.0.4
 export pkdex_image=registry.awon.cpss.duckdns.org/pkdex:1.0.4
 
 # https://hub.docker.com/r/linuxserver/wireguard/tags?name=1.
-export wireguard_image=linuxserver/wireguard:1.0.20210914
+export wgserver_image=linuxserver/wireguard:1.0.20210914
+export wgclient_image=$wgserver_image
 
 # https://hub.docker.com/r/linuxserver/transmission/tags
 export transmission_image=linuxserver/transmission:4.0.6
@@ -111,11 +112,13 @@ export homeassistant_image=linuxserver/homeassistant:2025.4.4
 # https://hub.docker.com/r/syncthing/syncthing/tags?page=&page_size=&ordering=&name=1.
 export syncthing_image=syncthing/syncthing:1.29.6
 
+## AI
+
 # https://hub.docker.com/r/ollama/ollama/tags?name=0.
-export ollama_image=ollama/ollama:0.6.8
+export ollama_image=ollama/ollama:0.7.0
 
 # https://github.com/open-webui/open-webui/pkgs/container/open-webui/versions
-export openwebui_image=ghcr.io/open-webui/open-webui:0.6.7
+export openwebui_image=ghcr.io/open-webui/open-webui:0.6.9
 
 # Windows
 

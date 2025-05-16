@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# configuration
+export exec_as_user=1000
+export exec_as_group=1000
+export service_check_path=""
+export service_check_tcponly=true
+
+function runsvc(){
+
+    service_name=$1
+    service_image=$2
+
+    docker run -d \
+        --name "${service_name}" \
+        --hostname "${service_name}" \
+        --restart unless-stopped \
+        --network ${DOCKER_NETWORK_NAME} \
+        --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
+        --cap-add=NET_ADMIN \
+        --cap-add=SYS_MODULE \
+        -e PUID=${exec_as_user} \
+        -e PGID=${exec_as_group} \
+        -e TZ=Europe/Paris \
+        -e SERVERURL=macl.duckdns.org `#optional` \
+        -e SERVERPORT=53921 `#optional` \
+        -e PEERS=work,awon,owrt,surfacequang,surfacehuyen,iphonequang,ipadquang,ipadchloe,popi,iphonedong,iphonehuyen,iphonehoa,iphonehang,iphoneanh,iphonedavid `#optional` \
+        -e PEERDNS="none" \
+        -e INTERNAL_SUBNET=10.13.13.0 `#optional` \
+        -e ALLOWEDIPS=10.13.13.0/24 `#optional` \
+        -e PERSISTENTKEEPALIVE_PEERS=all `#optional` \
+        -e LOG_CONFS=true `#optional` \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/config:rw" \
+        -l "traefik.enable=false" \
+        -p 51820:51820/udp \
+        ${service_image} \
+    
+}
+
+function post_start_tasks(){
+    
+    service_name=$1
+
+    # Add any post-start tasks here
+    return 0
+}
