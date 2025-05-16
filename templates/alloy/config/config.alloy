@@ -1,3 +1,4 @@
+// START BASE CONFIGURATION
 prometheus.exporter.self "alloy_check" { }
 
 discovery.relabel "alloy_check" {
@@ -58,11 +59,9 @@ loki.write "grafana_cloud_loki" {
   }
 }
 
-// Node exporter integration
+// END BASE CONFIGURATION
 
-// local.file "parent_host_name" {
-//   filename = "/etc/alloy/hostname"
-// }
+// START LINUX INTEGRATION
 
 discovery.relabel "integrations_node_exporter" {
   targets = prometheus.exporter.unix.integrations_node_exporter.targets
@@ -83,10 +82,10 @@ prometheus.exporter.unix "integrations_node_exporter" {
   disable_collectors = ["ipvs", "btrfs", "infiniband", "xfs", "zfs"]
 
   //mapping for in container exporter
-  procfs_path = "/host/proc"
-  sysfs_path = "/host/sys"
-  rootfs_path = "/host/root"
-  udev_data_path = "/host/root/run/udev/data"
+  procfs_path = "/rootfs/proc"
+  sysfs_path = "/rootfs/sys"
+  rootfs_path = "/rootfs"
+  udev_data_path = "/rootfs/run/udev/data"
 
   filesystem {
     fs_types_exclude     = "^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|tmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$"
@@ -173,9 +172,10 @@ declare "journal_module" {
       forward_to    = argument.forward_to.value
   }
 }
+// END LINUX INTEGRATION
 
 
-// OTLP integration
+// START OTLP INTEGRATION
 
 otelcol.receiver.otlp "default" {
 	// https://grafana.com/docs/alloy/latest/reference/components/otelcol.receiver.otlp/
@@ -329,3 +329,78 @@ otelcol.auth.basic "grafana_cloud" {
 	username = "admin"
 	password = "password"
 }
+
+// END OTLP INTEGRATION
+
+// START DOCKER INTEGRATION
+
+prometheus.exporter.cadvisor "integrations_cadvisor" {
+    docker_only = true
+}
+discovery.relabel "integrations_cadvisor" {
+    targets = prometheus.exporter.cadvisor.integrations_cadvisor.targets
+
+    rule {
+        target_label = "job"
+        replacement  = "integrations/docker"
+    }
+
+    rule {
+        target_label = "instance"
+        replacement  = constants.hostname
+    }
+}
+
+prometheus.relabel "integrations_cadvisor" {
+	forward_to = [prometheus.remote_write.metrics_service.receiver]
+
+	rule {
+		source_labels = ["__name__"]
+		regex         = "up|container_cpu_usage_seconds_total|container_fs_inodes_free|container_fs_inodes_total|container_fs_limit_bytes|container_fs_usage_bytes|container_last_seen|container_memory_usage_bytes|container_network_receive_bytes_total|container_network_tcp_usage_total|container_network_transmit_bytes_total|container_spec_memory_reservation_limit_bytes|machine_memory_bytes|machine_scrape_error"
+		action        = "keep"
+	}
+}
+
+prometheus.scrape "integrations_cadvisor" {
+    targets    = discovery.relabel.integrations_cadvisor.output
+    forward_to = [prometheus.relabel.integrations_cadvisor.receiver]
+}
+
+discovery.docker "logs_integrations_docker" {
+    host             = "unix:///var/run/docker.sock"
+    refresh_interval = "5s"
+}
+discovery.relabel "logs_integrations_docker" {
+    targets = []
+
+    rule {
+        target_label = "job"
+        replacement  = "integrations/docker"
+    }
+
+    rule {
+        target_label = "instance"
+        replacement  = constants.hostname
+    }
+
+    rule {
+        source_labels = ["__meta_docker_container_name"]
+        regex         = "/(.*)"
+        target_label  = "container"
+    }
+
+    rule {
+        source_labels = ["__meta_docker_container_log_stream"]
+        target_label  = "stream"
+    }
+}
+loki.source.docker "logs_integrations_docker" {
+    host             = "unix:///var/run/docker.sock"
+    targets          = discovery.docker.logs_integrations_docker.targets
+    forward_to       = [loki.write.grafana_cloud_loki.receiver]
+    relabel_rules    = discovery.relabel.logs_integrations_docker.rules
+    refresh_interval = "5s"
+}
+
+
+// END DOCKER INTEGRATION

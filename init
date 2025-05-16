@@ -60,12 +60,6 @@ export otelcol_image=otel/opentelemetry-collector-contrib:0.123.0
 export grafana_image=grafana/grafana:12.0.0
 export grafana_enterprise_image=grafana/grafana-enterprise:12.0.0
 
-# https://hub.docker.com/r/prom/node-exporter/tags?page=1&name=1.
-export node_exporter_image=prom/node-exporter:v1.9.1
-
-# https://console.cloud.google.com/gcr/images/cadvisor/GLOBAL/cadvisor
-export cadvisor_image=gcr.io/cadvisor/cadvisor:v0.52.1
-
 # https://hub.docker.com/r/prom/alertmanager/tags?page=1&name=0.
 export alertmanager_image=prom/alertmanager:v0.28.1
 
@@ -218,6 +212,7 @@ if [ "$1" == "help" ]; then
   echo "  stop <service_name>     - Stop the specified service."
   echo "  rm <service_name>       - Remove the specified service container."
   echo "  destroy <service_name>  - Stop, remove the container, and delete its configuration and data."
+  echo "  rerun <service_name>    - destroy and run again"
   echo "  help                    - Display this help message."
   return 0
 fi

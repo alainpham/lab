@@ -20,11 +20,13 @@ function runsvc(){
         --uts="host" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config:ro" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data:rw" \
-        -v "/:/host/root:ro,rslave" \
-        -v "/sys:/host/sys:ro,rslave" \
-        -v "/proc:/host/proc:ro,rslave" \
+        -v "/:/rootfs:ro,rslave" \
+        -v "/sys:/sys:ro,rslave" \
         -v "/var/run/docker.sock:/var/run/docker.sock:rw" \
         -v "/var/log/journal:/var/log/journal:ro,rslave" \
+        \
+        -v "/var/lib/docker:/var/lib/docker:ro" \
+        -v /dev/disk/:/dev/disk:ro \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=12345" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
