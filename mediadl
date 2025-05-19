@@ -19,7 +19,7 @@ function runsvc(){
         --restart unless-stopped \
         --user "${exec_as_user}:${exec_as_group}" \
         --network ${DOCKER_NETWORK_NAME} \
-        -e "OTEL_JAVAAGENT_ENABLED=true" \
+        -e "OTEL_JAVAAGENT_ENABLED=false" \
         -e "VIDEOS_FOLDER=/media-content/p01/videos" \
         -e "MUSIC_FOLDER=/media-content/p01/music" \
         -e "SHOWS_FOLDER=/media-content/p01/shows" \

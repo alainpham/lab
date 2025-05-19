@@ -17,7 +17,7 @@ function runsvc(){
         --restart unless-stopped \
         --user "${exec_as_user}:${exec_as_group}" \
         --network ${DOCKER_NETWORK_NAME} \
-        -e "OTEL_JAVAAGENT_ENABLED=true" \
+        -e "OTEL_JAVAAGENT_ENABLED=false" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8080" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
