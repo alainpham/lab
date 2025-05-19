@@ -24,6 +24,20 @@ lab run tempo
 lab run alloy
 lab run grafana
 
+# database
+lab run postgres
+
+# wireguard client
+
+# homelab
+lab run wgserver
+lab run wgclient
+lab run transmission
+lab run mediadl
+lab run rentman
+lab run pkdex
+lab run jellyfin
+lab run hass
 ```
 
 Destroy everything
