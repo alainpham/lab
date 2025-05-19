@@ -3,7 +3,7 @@
 # configuration
 export exec_as_user=1000
 export exec_as_group=1000
-export service_check_path=""
+export service_check_path=":8123"
 export service_check_tcponly=false
 
 function runsvc(){
@@ -11,30 +11,32 @@ function runsvc(){
     service_name=$1
     service_image=$2
 
-    mkdir -p "${DATA_ROOT_FOLDER}/media-content"
-
     docker run -d \
         --name "${service_name}" \
+        --hostname "${service_name}" \
         --restart unless-stopped \
-        --network container:wgclient \
+        --network ${DOCKER_NETWORK_NAME} \
         -e PUID=${exec_as_user} \
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
-        -v "${DATA_ROOT_FOLDER}/${service_name}/media-content:/media-content:rw" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config:rw" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data:rw" \
         -l "traefik.enable=true" \
-        -l "traefik.http.services.${service_name}.loadbalancer.server.port=9091" \
+        -l "traefik.http.services.${service_name}.loadbalancer.server.port=8123" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
         -l "traefik.http.routers.${service_name}.service=${service_name}" \
         -l "traefik.http.routers.${service_name}.entrypoints=https" \
         -l "traefik.http.routers.${service_name}.tls=true" \
         -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
+        -p "${EXPOSE_BINDADDRESS}:8123:8123" \
         ${service_image}
     
 }
 
 function post_start_tasks(){
-    # Add any post-start tasks here
-    service_name=$1
     
+    service_name=$1
+
+    # Add any post-start tasks here
     return 0
 }

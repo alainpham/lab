@@ -107,7 +107,7 @@ export transmission_image=linuxserver/transmission:4.0.6
 export nextcloud_image=linuxserver/nextcloud:31.0.4
 
 # https://hub.docker.com/r/linuxserver/homeassistant/tags
-export homeassistant_image=linuxserver/homeassistant:2025.4.4
+export hass_image=linuxserver/homeassistant:2025.5.2
 
 # https://hub.docker.com/r/syncthing/syncthing/tags?page=&page_size=&ordering=&name=1.
 export syncthing_image=syncthing/syncthing:1.29.6
