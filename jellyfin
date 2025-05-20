@@ -19,6 +19,7 @@ function runsvc(){
         --restart unless-stopped \
         --network ${DOCKER_NETWORK_NAME} \
         --memory=6g \
+        --device=/dev/dri:/dev/dri \
         -e PUID=${exec_as_user} \
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
