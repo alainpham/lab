@@ -18,10 +18,12 @@ function runsvc(){
         --network ${DOCKER_NETWORK_NAME} \
         --sysctl="net.ipv4.conf.all.src_valid_mark=1" \
         --cap-add=NET_ADMIN \
+        --cap-add=SYS_MODULE \
         -e PUID=${exec_as_user} \
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
         -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config/wg_confs:ro" \
+        -v /lib/modules:/lib/modules:ro \
         -l "traefik.enable=false" \
         ${service_image}
     
