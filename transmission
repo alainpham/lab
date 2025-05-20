@@ -11,8 +11,6 @@ function runsvc(){
     service_name=$1
     service_image=$2
 
-    mkdir -p "${DATA_ROOT_FOLDER}/media-content"
-
     docker run -d \
         --name "${service_name}" \
         --restart unless-stopped \
@@ -20,7 +18,7 @@ function runsvc(){
         -e PUID=${exec_as_user} \
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
-        -v "${DATA_ROOT_FOLDER}/${service_name}/media-content:/media-content:rw" \
+        -v "/media:/media:rw" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=9091" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \

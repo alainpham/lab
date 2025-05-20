@@ -20,12 +20,12 @@ function runsvc(){
         --user "${exec_as_user}:${exec_as_group}" \
         --network ${DOCKER_NETWORK_NAME} \
         -e "OTEL_JAVAAGENT_ENABLED=false" \
-        -e "VIDEOS_FOLDER=/media-content/m01/videos" \
-        -e "MUSIC_FOLDER=/media-content/m01/music" \
-        -e "SHOWS_FOLDER=/media-content/m01/shows" \
-        -e "MOVIES_FOLDER=/media-content/m01/movies" \
-        -e "KARAOKE_FOLDER=/media-content/m01/karaoke" \
-        -v "${DATA_ROOT_FOLDER}/media-content:/media-content:rw" \
+        -e "VIDEOS_FOLDER=/media/m01/content/videos" \
+        -e "MUSIC_FOLDER=/media/m01/content/music" \
+        -e "SHOWS_FOLDER=/media/m01/content/shows" \
+        -e "MOVIES_FOLDER=/media/m01/content/movies" \
+        -e "KARAOKE_FOLDER=/media/m01/content/karaoke" \
+        -v "/media:/media:rw" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8080" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
