@@ -92,7 +92,7 @@ export artemis_image=apache/activemq-artemis:2.41.0
 # https://hub.docker.com/r/linuxserver/jellyfin/tags?page=1&name=10.
 export jellyfin_image=linuxserver/jellyfin:10.10.7
 
-export mediadl_image=ghcr.io/codersandbox/mediadl:1.0.0
+export mediadl_image=ghcr.io/codersandbox/mediadl:1.1.0
 export rentman_image=ghcr.io/codersandbox/rentman:2.0.1
 export pkdex_image=ghcr.io/codersandbox/pkdex:2.0.0
 
@@ -124,6 +124,9 @@ export openwebui_image=ghcr.io/open-webui/open-webui:0.6.9
 
 # https://hub.docker.com/r/dockurr/windows/tags
 export windows_image=dockurr/windows:4.35
+
+# devuan os
+export devuan_image=dyne/devuan:daedalus
 
 # Helper functions
 
