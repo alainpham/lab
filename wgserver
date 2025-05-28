@@ -33,7 +33,7 @@ function runsvc(){
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/config:rw" \
         -v /lib/modules:/lib/modules:ro \
         -l "traefik.enable=false" \
-        -p 53921:53921/udp \
+        -p 53921:51820/udp \
         ${service_image} \
     
 }
