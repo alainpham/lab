@@ -1,7 +1,6 @@
 #/bin/bash
 
 export script_dir="$(cd "$(dirname "${BASH_SOURCE}")" && pwd)"
-source $script_dir/secret
 
 export DOCKER_NETWORK_NAME=primenet
 export DOCKER_NETWORK_SUBNET=18
@@ -9,6 +8,7 @@ export DATA_ROOT_FOLDER=/home/${USER}/apps
 export WILDCARD_DOMAIN=zez.duckdns.org
 export EXPOSE_BINDADDRESS=127.0.0.1
 
+source $script_dir/secret
 # Platform
 
 # https://hub.docker.com/_/traefik/tags?page=1&name=3.
