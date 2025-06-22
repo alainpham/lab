@@ -1,8 +1,9 @@
 # Deploying a lab
 
 ```sh
-
-source init
+touch initsecrets
+echo "export DUCKDNS_TOKEN=xxx" | tee initsecrets
+source initab
 
 # essentials
 lab run traefik
