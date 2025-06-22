@@ -1,8 +1,8 @@
 # Deploying a lab
 
 ```sh
-touch initsecrets
-echo "export DUCKDNS_TOKEN=xxx" | tee initsecrets
+touch secret
+echo "export DUCKDNS_TOKEN=xxx" | tee secret
 source initab
 
 # essentials
