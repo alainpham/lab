@@ -29,8 +29,7 @@ function runsvc(){
         -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
         -p "${EXPOSE_BINDADDRESS}:8384:8384" \
         -p "${EXPOSE_BINDADDRESS}:22000:22000" \
-        ${service_image} \
-        model -configFile=/config/config.yaml
+        ${service_image}
     
 }
 
