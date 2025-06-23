@@ -19,6 +19,7 @@ function runsvc(){
         -e PUID=${exec_as_user} \
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/var/syncthing/config:rw" \
         -v "/home/$TARGET_USERNAME/.config/retroarch/saves:/var/syncthing/saves:rw" \
         -v "/home/$TARGET_USERNAME/.config/retroarch/states:/var/syncthing/states:rw" \
         -l "traefik.enable=true" \
