@@ -19,7 +19,8 @@ function runsvc(){
         -e PUID=${exec_as_user} \
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
-        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/var/syncthing:rw" \
+        -v "/home/$TARGET_USERNAME/.config/retroarch/saves:/var/syncthing/Sync/saves:rw"
+        -v "/home/$TARGET_USERNAME/.config/retroarch/states:/var/syncthing/Sync/states:rw"
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8384" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
