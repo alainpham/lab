@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # configuration
-export exec_as_user=1000
-export exec_as_group=1000
+export exec_as_user=0
+export exec_as_group=0
 export service_check_path=":8971"
 export service_check_tcponly=false
 
