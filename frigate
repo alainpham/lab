@@ -3,7 +3,7 @@
 # configuration
 export exec_as_user=0
 export exec_as_group=0
-export service_check_path=":8971"
+export service_check_path=":5000"
 export service_check_tcponly=false
 
 function runsvc(){
@@ -23,13 +23,13 @@ function runsvc(){
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/media/frigate:rw" \
         -v "/tmp/frigate/cache:/tmp/cache:rw" \
         -l "traefik.enable=true" \
-        -l "traefik.http.services.${service_name}.loadbalancer.server.port=8971" \
+        -l "traefik.http.services.${service_name}.loadbalancer.server.port=5000" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
         -l "traefik.http.routers.${service_name}.service=${service_name}" \
         -l "traefik.http.routers.${service_name}.entrypoints=https" \
         -l "traefik.http.routers.${service_name}.tls=true" \
         -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
-        -p "${EXPOSE_BINDADDRESS}:8971:8971" \
+        -p "${EXPOSE_BINDADDRESS}:5000:5000" \
         -p "${EXPOSE_BINDADDRESS}:8554:8554" \
         -p "${EXPOSE_BINDADDRESS}:8555:8555" \
         ${service_image}
