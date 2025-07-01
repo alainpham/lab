@@ -29,7 +29,7 @@ function runsvc(){
         -l "traefik.http.routers.${service_name}.entrypoints=https" \
         -l "traefik.http.routers.${service_name}.tls=true" \
         -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
-        -p "${EXPOSE_BINDADDRESS}:5000:5000" \
+        -p "${EXPOSE_BINDADDRESS}:28003:5000" \
         -p "${EXPOSE_BINDADDRESS}:8554:8554" \
         -p "${EXPOSE_BINDADDRESS}:8555:8555" \
         ${service_image}
