@@ -22,8 +22,8 @@ function runsvc(){
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/var/syncthing/config:rw" \
         -v "/home/$TARGET_USERNAME/.config/retroarch/saves:/var/syncthing/saves:rw" \
         -v "/home/$TARGET_USERNAME/.config/retroarch/states:/var/syncthing/states:rw" \
-        -v "/home/$TARGET_USERNAME/.config/PCSX2/saves:/var/syncthing/PCSX2/saves:rw" \
-        -v "/home/$TARGET_USERNAME/.config/PCSX2/states:/var/syncthing/PCSX2/states:rw" \
+        -v "/home/$TARGET_USERNAME/.config/PCSX2/memcards:/var/syncthing/PCSX2/memcards:rw" \
+        -v "/home/$TARGET_USERNAME/.config/PCSX2/sstates:/var/syncthing/PCSX2/sstates:rw" \
         -v "/home/$TARGET_USERNAME/.config/PCSX2/covers:/var/syncthing/PCSX2/covers:rw" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8384" \
