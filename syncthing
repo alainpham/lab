@@ -25,6 +25,7 @@ function runsvc(){
         -v "/home/$TARGET_USERNAME/.config/PCSX2/memcards:/var/syncthing/PCSX2/memcards:rw" \
         -v "/home/$TARGET_USERNAME/.config/PCSX2/sstates:/var/syncthing/PCSX2/sstates:rw" \
         -v "/home/$TARGET_USERNAME/.config/PCSX2/covers:/var/syncthing/PCSX2/covers:rw" \
+        -v "/home/$TARGET_USERNAME/ES-DE/downloaded_media:/var/syncthing/downloaded_media:rw" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8384" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
