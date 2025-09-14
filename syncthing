@@ -28,7 +28,7 @@ function runsvc(){
         -v "/home/$TARGET_USERNAME/ES-DE/downloaded_media:/var/syncthing/downloaded_media:rw" \
         -v "/home/$TARGET_USERNAME/.var/app/org.DolphinEmu.dolphin-emu/data/dolphin-emu/GC:/var/syncthing/GC:rw" \
         -v "/home/$TARGET_USERNAME/.var/app/org.DolphinEmu.dolphin-emu/data/dolphin-emu/Wii:/var/syncthing/Wii:rw" \
-        -v "/home/$TARGET_USERNAME/.local/share/Cemu/mlc01/:/var/syncthing/cemu:rw" \
+        -v "/home/$TARGET_USERNAME/.local/share/Cemu/mlc01:/var/syncthing/cemu:rw" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8384" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
