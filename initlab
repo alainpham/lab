@@ -128,6 +128,9 @@ export windows_image=dockurr/windows:4.35
 # devuan os
 export devuan_image=dyne/devuan:daedalus
 
+# devuan os
+export ubuntu_image=docker.io/ubuntu:noble
+
 # frigate
 export frigate_image=ghcr.io/blakeblackshear/frigate:0.15.0
 
