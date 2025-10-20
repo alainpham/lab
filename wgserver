@@ -22,14 +22,14 @@ function runsvc(){
         -e PUID=${exec_as_user} \
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
-        -e SERVERURL=macl.duckdns.org `#optional` \
-        -e SERVERPORT=53921 `#optional` \
-        -e PEERS=work,awon,owrt,surfacequang,surfacehuyen,iphonequang,ipadquang,ipadchloe,popi,iphonedong,iphonehuyen,iphonehoa,iphonehang,iphoneanh,iphonedavid `#optional` \
+        -e SERVERURL=macl.duckdns.org \
+        -e SERVERPORT=53921 \
+        -e PEERS=40 \
         -e PEERDNS="none" \
-        -e INTERNAL_SUBNET=10.13.13.0 `#optional` \
-        -e ALLOWEDIPS=10.13.13.0/24 `#optional` \
-        -e PERSISTENTKEEPALIVE_PEERS=all `#optional` \
-        -e LOG_CONFS=true `#optional` \
+        -e INTERNAL_SUBNET=10.13.13.0 \
+        -e ALLOWEDIPS=10.13.13.0/24 \
+        -e PERSISTENTKEEPALIVE_PEERS=all \
+        -e LOG_CONFS=true \
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/config:rw" \
         -v /lib/modules:/lib/modules:ro \
         -l "traefik.enable=false" \
