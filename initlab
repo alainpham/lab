@@ -315,6 +315,7 @@ function networking(){
 
 function gencert(){
   sudo rm -rf /home/${USER}/apps/tls
+
   mkdir -p /home/${USER}/apps/tls/cfg /home/${USER}/apps/tls/logs
 
   docker run --rm --name certbot  -v "/home/${USER}/apps/tls/cfg:/etc/letsencrypt" -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" infinityofspace/certbot_dns_duckdns:${CERTBOT_DUCKDNS_VERSION} \
@@ -327,7 +328,6 @@ function gencert(){
       --dns-duckdns-token ${DUCKDNS_TOKEN} \
       --dns-duckdns-propagation-seconds 45 \
       -d "*.${WILDCARD_DOMAIN}"
-  fi
 
   sudo chown -R ${USER}:${USER} /home/${USER}/apps/tls/cfg
 }
