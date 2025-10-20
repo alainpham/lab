@@ -11,6 +11,14 @@ function runsvc(){
     service_name=$1
     service_image=$2
 
+    nbpeers=41
+    peers=""
+    for i in $(seq 2 $nbpeers); do
+        if [ -n "$peers" ]; then peers+=","; fi
+        peers+="p${i}"
+    done
+    echo $peers
+
     docker run -d \
         --name "${service_name}" \
         --hostname "${service_name}" \
@@ -24,7 +32,7 @@ function runsvc(){
         -e TZ=Europe/Paris \
         -e SERVERURL=macl.duckdns.org \
         -e SERVERPORT=53921 \
-        -e PEERS=40 \
+        -e PEERS=$peers \
         -e PEERDNS="none" \
         -e INTERNAL_SUBNET=10.13.13.0 \
         -e ALLOWEDIPS=10.13.13.0/24 \
