@@ -11,13 +11,36 @@ function runsvc(){
     service_name=$1
     service_image=$2
 
-    nbpeers=41
+    nbpeers=71
     peers=""
     for i in $(seq 2 $nbpeers); do
         if [ -n "$peers" ]; then peers+=","; fi
         peers+="p${i}"
     done
     echo $peers
+
+    peersmapping=(
+        # servers
+        "p2|aaon"
+        # pcs
+        "p20|lpro"
+        "p21|lg15"
+        "p22|mbm1"
+        # phones & tablets
+        "p40|iphone 8s quang"
+        "p41|ipad air quang"
+        "p42|ipad a16 quang"
+        "p43|thomson quang"
+        "p44|ipad 9 max"
+        "p45|iphone 14 pro max hoa"
+    )
+
+    for entry in "${peersmapping[@]}"; do
+        peernb="${entry%%|*}"
+        name="${entry#*|}"
+    echo $peernb "->" $name
+    done
+
 
     docker run -d \
         --name "${service_name}" \
@@ -50,6 +73,8 @@ function post_start_tasks(){
     
     service_name=$1
 
-    # Add any post-start tasks here
+    
+    
+
     return 0
 }
