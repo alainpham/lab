@@ -19,6 +19,7 @@ function runsvc(){
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
         -v "/media:/media:rw" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/config:"/config" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=9091" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
