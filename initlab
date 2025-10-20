@@ -7,6 +7,7 @@ export DOCKER_NETWORK_SUBNET=18
 export DATA_ROOT_FOLDER=/home/${USER}/apps
 export WILDCARD_DOMAIN=zez.duckdns.org
 export EXPOSE_BINDADDRESS=127.0.0.1
+export EMAIL=admin@zez.duckdns.org
 
 source $script_dir/secret
 # Platform
@@ -310,4 +311,23 @@ function networking(){
     echo "✅ $DOCKER_NETWORK_NAME docker network exists !"
   fi
 
+}
+
+function gencert(){
+  sudo rm -rf /home/${USER}/apps/tls
+  mkdir -p /home/${USER}/apps/tls/cfg /home/${USER}/apps/tls/logs
+
+  docker run --rm --name certbot  -v "/home/${USER}/apps/tls/cfg:/etc/letsencrypt" -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" infinityofspace/certbot_dns_duckdns:${CERTBOT_DUCKDNS_VERSION} \
+    certonly \
+      --non-interactive \
+      --agree-tos \
+      --email ${EMAIL} \
+      --preferred-challenges dns \
+      --authenticator dns-duckdns \
+      --dns-duckdns-token ${DUCKDNS_TOKEN} \
+      --dns-duckdns-propagation-seconds 45 \
+      -d "*.${WILDCARD_DOMAIN}"
+  fi
+
+  sudo chown -R ${USER}:${USER} /home/${USER}/apps/tls/cfg
 }
