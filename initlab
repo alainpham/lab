@@ -114,7 +114,7 @@ export nextcloud_image=linuxserver/nextcloud:32.0.0
 export hass_image=linuxserver/homeassistant:2025.10.3
 
 # https://hub.docker.com/r/syncthing/syncthing/tags?page=&page_size=&ordering=&name=2.
-export syncthing_image=syncthing/syncthing:1.29.7
+export syncthing_image=syncthing/syncthing:2.0.10
 
 ## AI
 
