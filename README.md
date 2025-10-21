@@ -67,3 +67,8 @@ lab destroy alloy
 lab destroy grafana
 
 ```
+
+# Connecting to vpn
+```sh
+sudo nmcli connection import type wireguard file "/etc/wireguard/wgaaon.conf"
+```
