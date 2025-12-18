@@ -13,7 +13,6 @@ function runsvc(){
 
     docker run -d \
         --name "${service_name}" \
-	--privileged \
         --hostname "${service_name}" \
         --restart unless-stopped \
         --user "${exec_as_user}:${exec_as_group}" \
