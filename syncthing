@@ -8,8 +8,23 @@ export service_check_tcponly=false
 
 function runsvc(){
 
+    folders="
+        /home/$TARGET_USERNAME/.config/retroarch/saves
+        /home/$TARGET_USERNAME/.config/retroarch/states
+        /home/$TARGET_USERNAME/.config/PCSX2/memcards
+        /home/$TARGET_USERNAME/.config/PCSX2/sstates
+        /home/$TARGET_USERNAME/.config/PCSX2/covers
+        /home/$TARGET_USERNAME/ES-DE/downloaded_media
+        /home/$TARGET_USERNAME/.local/share/Cemu/mlc01
+    "
+
+    for folder in $(echo $folders); do
+        mkdir -p "$folder"
+    done
+
     service_name=$1
     service_image=$2
+
 
     docker run -d \
         --name "${service_name}" \
