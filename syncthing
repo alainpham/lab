@@ -16,6 +16,8 @@ function runsvc(){
         /home/$TARGET_USERNAME/.config/PCSX2/covers
         /home/$TARGET_USERNAME/ES-DE/downloaded_media
         /home/$TARGET_USERNAME/.local/share/Cemu/mlc01
+        /home/$TARGET_USERNAME/.local/share/dolphin-emu/GC
+        /home/$TARGET_USERNAME/.local/share/dolphin-emu/Wii
     "
 
     for folder in $(echo $folders); do
