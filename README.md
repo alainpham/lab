@@ -70,5 +70,5 @@ lab destroy grafana
 
 # Connecting to vpn
 ```sh
-sudo nmcli connection import type wireguard file "/etc/wireguard/wgaaon.conf"
+sudo nmcli connection import type wireguard file "/etc/wireguard/waaon.conf"
 ```
