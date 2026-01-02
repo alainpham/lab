@@ -53,7 +53,7 @@ function runsvc(){
         -e PUID=${exec_as_user} \
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
-        -e SERVERURL=macl.duckdns.org \
+        -e SERVERURL=waaon.dns.army \
         -e SERVERPORT=53921 \
         -e PEERS=$peers \
         -e PEERDNS="none" \
