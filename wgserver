@@ -22,6 +22,7 @@ function runsvc(){
     peersmapping=(
         # servers
         "p2|aaon"
+        "p3|popi"
         # pcs
         "p20|lpro"
         "p21|lg15"
