@@ -92,7 +92,7 @@ export artemis_image=apache/activemq-artemis:2.44.0
 # https://hub.docker.com/r/linuxserver/jellyfin/tags?page=1&name=10.
 export jellyfin_image=linuxserver/jellyfin:10.11.6
 
-export mediadl_image=ghcr.io/codersandbox/mediadl:1.3.1
+export mediadl_image=ghcr.io/codersandbox/mediadl:1.3.2
 export rentman_image=ghcr.io/codersandbox/rentman:2.0.1
 export pkdex_image=ghcr.io/codersandbox/pkdex:2.0.0
 
