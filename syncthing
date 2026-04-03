@@ -18,6 +18,8 @@ function runsvc(){
         /home/$TARGET_USERNAME/.local/share/Cemu/mlc01
         /home/$TARGET_USERNAME/.local/share/dolphin-emu/GC
         /home/$TARGET_USERNAME/.local/share/dolphin-emu/Wii
+        /home/$TARGET_USERNAME/.config/ppsspp/PSP/SAVEDATA
+        /home/$TARGET_USERNAME/.config/ppsspp/PSP/PPSSPP_STATE
     "
 
     for folder in $(echo $folders); do
