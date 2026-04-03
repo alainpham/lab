@@ -46,6 +46,8 @@ function runsvc(){
         -v "/home/$TARGET_USERNAME/.local/share/dolphin-emu/GC:/var/syncthing/GC:rw" \
         -v "/home/$TARGET_USERNAME/.local/share/dolphin-emu/Wii:/var/syncthing/Wii:rw" \
         -v "/home/$TARGET_USERNAME/.local/share/Cemu/mlc01:/var/syncthing/cemu:rw" \
+        -v "/home/$TARGET_USERNAME/.config/ppsspp/PSP/SAVEDATA:/var/syncthing/ppsspp/SAVEDATA:rw" \
+        -v "/home/$TARGET_USERNAME/.config/ppsspp/PSP/PPSSPP_STATE:/var/syncthing/PPSSPP_STATE:rw" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8384" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
