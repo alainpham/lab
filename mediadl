@@ -34,7 +34,6 @@ function runsvc(){
         -l "traefik.http.routers.${service_name}.middlewares=${service_name}-headers" \
         -l "traefik.http.routers.${service_name}.entrypoints=https" \
         -l "traefik.http.routers.${service_name}.tls=true" \
-        -l "traefik.http.routers.${service_name}.tls.options=websocket@file" \
         -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
         -p "${EXPOSE_BINDADDRESS}:28006:8080" \
         ${service_image}
