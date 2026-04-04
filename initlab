@@ -318,19 +318,51 @@ function gencert(){
 
   cat > /home/${USER}/apps/tls/auth.sh << 'EOF'
 #!/bin/sh
-apk add --no-cache openssh-client -q
-echo $CERTBOT_DOMAIN
-echo $CERTBOT_VALIDATION
-ssh -o StrictHostKeyChecking=no api@dynv6.com hosts $CERTBOT_DOMAIN records set _acme-challenge txt data $CERTBOT_VALIDATION
-sleep 45
+ZONE=$(echo "$CERTBOT_DOMAIN" | sed 's/^\*\.//')
+
+ZONE_ID=$(curl -s \
+  -H "Authorization: Bearer $DNS_TOKEN" \
+  -H "Accept: application/json" \
+  "https://dynv6.com/api/v2/zones/by-name/$ZONE" \
+  | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+
+RECORD_ID=$(curl -s -X POST \
+  -H "Authorization: Bearer $DNS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"type\":\"TXT\",\"name\":\"_acme-challenge\",\"data\":\"$CERTBOT_VALIDATION\"}" \
+  "https://dynv6.com/api/v2/zones/$ZONE_ID/records" \
+  | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+
+echo "$RECORD_ID" > /tmp/dynv6_record_id
+
+sleep 15
 EOF
 
-  chmod +x /home/${USER}/apps/tls/auth.sh
+  cat > /home/${USER}/apps/tls/cleanup.sh << 'EOF'
+#!/bin/sh
+ZONE=$(echo "$CERTBOT_DOMAIN" | sed 's/^\*\.//')
+
+ZONE_ID=$(curl -s \
+  -H "Authorization: Bearer $DNS_TOKEN" \
+  -H "Accept: application/json" \
+  "https://dynv6.com/api/v2/zones/by-name/$ZONE" \
+  | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+
+RECORD_ID=$(cat /tmp/dynv6_record_id)
+
+curl -s -X DELETE \
+  -H "Authorization: Bearer $DNS_TOKEN" \
+  "https://dynv6.com/api/v2/zones/$ZONE_ID/records/$RECORD_ID"
+EOF
+
+  chmod +x /home/${USER}/apps/tls/auth.sh /home/${USER}/apps/tls/cleanup.sh
 
   docker run --rm --name certbot \
+    -e DNS_TOKEN=${DNS_TOKEN} \
     -v "/home/${USER}/apps/tls/cfg:/etc/letsencrypt" \
     -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" \
     -v "/home/${USER}/apps/tls/auth.sh:/auth.sh" \
+    -v "/home/${USER}/apps/tls/cleanup.sh:/cleanup.sh" \
     certbot/certbot:latest \
       certonly \
         --non-interactive \
@@ -339,6 +371,7 @@ EOF
         --preferred-challenges dns \
         --authenticator manual \
         --manual-auth-hook /auth.sh \
+        --manual-cleanup-hook /cleanup.sh \
         -d "*.${WILDCARD_DOMAIN}"
 
   sudo chown -R ${USER}:$(id -gn) /home/${USER}/apps/tls/cfg
