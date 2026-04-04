@@ -312,6 +312,29 @@ function networking(){
 
 }
 
+function check_updates(){
+  local name image_var exported_image running_image status
+
+  printf "%-25s %-55s %-55s %s\n" "CONTAINER" "RUNNING IMAGE" "EXPORTED IMAGE" "STATUS"
+  printf "%-25s %-55s %-55s %s\n" "---------" "-------------" "--------------" "------"
+
+  while IFS= read -r name; do
+    running_image=$(docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null)
+    image_var="${name}_image"
+    exported_image="${!image_var}"
+
+    if [ -z "$exported_image" ]; then
+      status="(no export)"
+    elif [ "$running_image" == "$exported_image" ]; then
+      status="✅ up to date"
+    else
+      status="⚠️  UPDATE NEEDED"
+    fi
+
+    printf "%-25s %-55s %-55s %s\n" "$name" "$running_image" "${exported_image:-(none)}" "$status"
+  done < <(docker ps --format '{{.Names}}' | sort)
+}
+
 function gencertcurl(){
   sudo rm -rf /home/${USER}/apps/tls
 
