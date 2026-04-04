@@ -15,11 +15,11 @@ source $script_dir/secret
 
 # https://hub.docker.com/_/traefik/tags?page=1&name=3.
 # https://github.com/traefik/traefik/releases/latest
-export traefik_image=docker.io/traefik:3.6.7
+export traefik_image=docker.io/traefik:3.6.12
 
 # https://hub.docker.com/r/portainer/portainer-ce/tags?page=1&name=2.
 # https://github.com/portainer/portainer/releases/latest
-export portainer_image=portainer/portainer-ce:2.33.6
+export portainer_image=portainer/portainer-ce:2.39.1
 
 # Repos
 
@@ -28,61 +28,61 @@ export reg_image=docker.io/registry:2.8.3
 # https://hub.docker.com/r/joxit/docker-registry-ui/tags?page=1&name=2.
 export rui_image=joxit/docker-registry-ui:2.6.0
 # https://hub.docker.com/r/dzikoysk/reposilite/tags?page=1&name=3.
-export reposilite_image=dzikoysk/reposilite:3.5.26
+export reposilite_image=dzikoysk/reposilite:3.5.28
 # https://hub.docker.com/r/joseluisq/static-web-server/tags
-export static_image=joseluisq/static-web-server:2.38.1
+export static_image=joseluisq/static-web-server:2.42.0
 
 # IDP
 
 # https://quay.io/repository/keycloak/keycloak?tab=tags&tag=latest
-export keycloak_image=quay.io/keycloak/keycloak:26.5.2-0
+export keycloak_image=quay.io/keycloak/keycloak:26.5.7-0
 
 # Observability stack
 
 # https://hub.docker.com/r/prom/prometheus/tags?page=1&name=3.
-export prometheus_image=prom/prometheus:v3.9.1
+export prometheus_image=prom/prometheus:v3.11.0
 
 # https://hub.docker.com/r/grafana/loki/tags?page=1&name=3.
-export loki_image=grafana/loki:3.6.4
+export loki_image=grafana/loki:3.7.1
 
 # https://hub.docker.com/r/grafana/tempo/tags?page=1&name=2.
-export tempo_image=grafana/tempo:2.9.1
+export tempo_image=grafana/tempo:2.10.3
 
 # https://hub.docker.com/r/grafana/alloy/tags?page=1&name=v1.
-export alloy_image=grafana/alloy:v1.12.2
+export alloy_image=grafana/alloy:v1.15.0
 
 # https://hub.docker.com/r/otel/opentelemetry-collector-contrib/tags?page=&page_size=&ordering=&name=0.
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/releases/latest
-export otelcol_image=otel/opentelemetry-collector-contrib:0.144.0
+export otelcol_image=otel/opentelemetry-collector-contrib:v0.149.0
 
 # https://hub.docker.com/r/grafana/grafana/tags?page=1&name=12.
 # https://github.com/grafana/grafana/releases/latest
-export grafana_image=grafana/grafana:12.3.1
-export grafana_enterprise_image=grafana/grafana-enterprise:12.3.1
+export grafana_image=grafana/grafana:12.4.2
+export grafana_enterprise_image=grafana/grafana-enterprise:12.4.2
 
 # https://hub.docker.com/r/prom/alertmanager/tags?page=1&name=0.
-export alertmanager_image=prom/alertmanager:v0.30.1
+export alertmanager_image=prom/alertmanager:v0.31.1
 
 
 # Databases
 # https://hub.docker.com/_/mariadb
 # https://github.com/MariaDB/server/releases/latest
-export mariadb_image=docker.io/mariadb:12.1.2
+export mariadb_image=docker.io/mariadb:12.2.2
 # https://hub.docker.com/_/mysql/tags?page=1&name=9.
 export mysql_image=docker.io/mysql:9.6.0
 # https://hub.docker.com/_/postgres
-export postgres_image=docker.io/postgres:18.1
+export postgres_image=docker.io/postgres:18.3
 # https://hub.docker.com/_/elasticsearch
-export elasticsearch_image=docker.io/elasticsearch:9.2.4
-export kibana_image=docker.io/kibana:9.2.4
+export elasticsearch_image=docker.io/elasticsearch:9.3.2
+export kibana_image=docker.io/kibana:9.3.2
 # oracledb: container-registry.oracle.com/database/free:23.3.0.0
 export oracledb_image=oracledb:19.3.0
 # https://hub.docker.com/_/adminer/tags?page=1&name=5.
-export adminer_image=docker.io/adminer:5.4.1
+export adminer_image=docker.io/adminer:5.4.2
 
 # Messaging
 # https://hub.docker.com/r/apache/kafka/tags
-export kafka_image=apache/kafka:4.1.1
+export kafka_image=apache/kafka:4.1.2
 # https://hub.docker.com/r/obsidiandynamics/kafdrop/tags?page=1&name=4.
 export kafdrop_image=obsidiandynamics/kafdrop:4.2.0
 # https://hub.docker.com/r/apache/activemq-artemis/tags?page=1&name=2.
@@ -91,7 +91,7 @@ export artemis_image=apache/activemq-artemis:2.44.0
 # Homelab
 
 # https://hub.docker.com/r/linuxserver/jellyfin/tags?page=1&name=10.
-export jellyfin_image=linuxserver/jellyfin:10.11.6
+export jellyfin_image=linuxserver/jellyfin:10.11.7
 
 export mediadl_image=ghcr.io/codersandbox/mediadl:1.4.1
 export rentman_image=ghcr.io/codersandbox/rentman:2.0.1
@@ -104,21 +104,21 @@ export wgserver_image=linuxserver/wireguard:1.0.20250521
 export wgclient_image=$wgserver_image
 
 # https://hub.docker.com/r/linuxserver/transmission/tags
-export transmission_image=linuxserver/transmission:4.0.6
+export transmission_image=linuxserver/transmission:4.1.1
 
 # https://hub.docker.com/r/linuxserver/nextcloud/tags
-export nextcloud_image=linuxserver/nextcloud:32.0.5
+export nextcloud_image=linuxserver/nextcloud:33.0.2
 
 # https://hub.docker.com/r/linuxserver/homeassistant/tags
-export hass_image=linuxserver/homeassistant:2026.1.2
+export hass_image=linuxserver/homeassistant:2026.4.1
 
 # https://hub.docker.com/r/syncthing/syncthing/tags?page=&page_size=&ordering=&name=2.
-export syncthing_image=syncthing/syncthing:2.0.13
+export syncthing_image=syncthing/syncthing:2.0.15
 
 ## AI
 
 # https://hub.docker.com/r/ollama/ollama/tags?name=0.
-export ollama_image=ollama/ollama:0.14.3
+export ollama_image=ollama/ollama:0.20.2
 
 # https://github.com/open-webui/open-webui/pkgs/container/open-webui/versions
 export openwebui_image=ghcr.io/open-webui/open-webui:0.7.2
