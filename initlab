@@ -229,6 +229,7 @@ if [ "$1" == "help" ]; then
   echo "  rm <service_name>       - Remove the specified service container."
   echo "  destroy <service_name>  - Stop, remove the container, and delete its configuration and data."
   echo "  rerun <service_name>    - destroy and run again"
+  echo "  recreate <service_name> - remove container and run again (keeps data)"
   echo "  help                    - Display this help message."
   return 0
 fi
@@ -251,12 +252,12 @@ fi
 #script should define function service_name_run, and export http port and servicecheckpath
 source "$service_script"
 
-if [ "$command" == "stop" ] || [ "$command" == "rm" ] || [ "$command" == "destroy" ] || [ "$command" == "rerun" ]; then
+if [ "$command" == "stop" ] || [ "$command" == "rm" ] || [ "$command" == "destroy" ] || [ "$command" == "rerun" ] || [ "$command" == "recreate" ]; then
   echo "Stopping container ${service_name}..."
   docker stop ${service_name}
 fi
 
-if [ "$command" == "rm" ] || [ "$command" == "destroy" ] || [ "$command" == "rerun" ]; then
+if [ "$command" == "rm" ] || [ "$command" == "destroy" ] || [ "$command" == "rerun" ] || [ "$command" == "recreate" ]; then
   echo "Removing container ${service_name}..."
   docker rm ${service_name}
 fi
@@ -266,7 +267,7 @@ if [ "$command" == "destroy" ] || [ "$command" == "rerun" ]; then
 fi
 
 
-if [ "$command" == "rerun" ] || [ "$command" == "run" ] ; then
+if [ "$command" == "rerun" ] || [ "$command" == "run" ] || [ "$command" == "recreate" ] ; then
     
     networking
 
