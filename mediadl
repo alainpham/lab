@@ -29,8 +29,7 @@ function runsvc(){
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8080" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
-        -l "traefik.http.services.${service_name}.loadbalancer.serversTransport=${service_name}transport" \
-        -l "traefik.http.serversTransports.${service_name}transport.forwardingTimeouts.responseHeaderTimeout=0s" \
+        -l "traefik.http.services.${service_name}.loadbalancer.serversTransport=websocket@file" \
         -l "traefik.http.routers.${service_name}.service=${service_name}" \
         -l "traefik.http.routers.${service_name}.entrypoints=https" \
         -l "traefik.http.routers.${service_name}.tls=true" \

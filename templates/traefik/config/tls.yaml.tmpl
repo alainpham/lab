@@ -4,3 +4,9 @@ tls:
       defaultCertificate:
           keyFile: "/certs/cfg/live/${WILDCARD_DOMAIN}/privkey.pem"
           certFile: "/certs/cfg/live/${WILDCARD_DOMAIN}/fullchain.pem"
+
+http:
+  serversTransports:
+    websocket:
+      forwardingTimeouts:
+        responseHeaderTimeout: 0s
