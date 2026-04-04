@@ -337,7 +337,6 @@ EOF
         --email ${EMAIL} \
         --preferred-challenges dns \
         --authenticator manual \
-        --manual-public-ip-logging-ok \
         --manual-auth-hook /auth.sh \
         -d "*.${WILDCARD_DOMAIN}"
 
