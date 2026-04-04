@@ -30,7 +30,7 @@ function runsvc(){
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8080" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
         -l "traefik.http.routers.${service_name}.service=${service_name}" \
-        -l "traefik.http.routers.${service_name}.entrypoints=http" \
+        -l "traefik.http.routers.${service_name}.entrypoints=https" \
         -l "traefik.http.routers.${service_name}.tls=true" \
         -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
         -p "${EXPOSE_BINDADDRESS}:28006:8080" \
