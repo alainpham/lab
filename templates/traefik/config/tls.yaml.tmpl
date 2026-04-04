@@ -5,8 +5,9 @@ tls:
           keyFile: "/certs/cfg/live/${WILDCARD_DOMAIN}/privkey.pem"
           certFile: "/certs/cfg/live/${WILDCARD_DOMAIN}/fullchain.pem"
 
-http:
-  serversTransports:
+tls:
+  options:
     websocket:
-      forwardingTimeouts:
-        responseHeaderTimeout: 0s
+      alpnProtocols:
+        - http/1.1
+
