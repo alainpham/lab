@@ -317,7 +317,7 @@ function gencert(){
   mkdir -p /home/${USER}/apps/tls/cfg /home/${USER}/apps/tls/logs
 
   cat > /home/${USER}/apps/tls/auth.sh << 'EOF'
-#!/bin/bash
+#!/bin/sh
 echo $CERTBOT_DOMAIN
 echo $CERTBOT_VALIDATION
 ssh api@dynv6.com hosts $CERTBOT_DOMAIN records set _acme-challenge txt data $CERTBOT_VALIDATION
