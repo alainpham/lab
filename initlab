@@ -8,7 +8,7 @@ export DATA_ROOT_FOLDER=/home/${USER}/apps
 export WILDCARD_DOMAIN=zez.duckdns.org
 export EXPOSE_BINDADDRESS=127.0.0.1
 export EMAIL=admin@zez.duckdns.org
-export CERTBOT_DUCKDNS_VERSION=1.8.0
+export CERTBOT_IMAGE=certbot-custom:latest
 
 source $script_dir/secret
 # Platform
@@ -311,10 +311,14 @@ function networking(){
 
 }
 
-function gencert(){
+function gencertcurl(){
   sudo rm -rf /home/${USER}/apps/tls
 
   mkdir -p /home/${USER}/apps/tls/cfg /home/${USER}/apps/tls/logs
+
+  if ! docker image inspect ${CERTBOT_IMAGE} &>/dev/null; then
+    docker build -t ${CERTBOT_IMAGE} ${script_dir}/certbot
+  fi
 
   cat > /home/${USER}/apps/tls/auth.sh << 'EOF'
 #!/bin/sh
@@ -363,7 +367,7 @@ EOF
     -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" \
     -v "/home/${USER}/apps/tls/auth.sh:/auth.sh" \
     -v "/home/${USER}/apps/tls/cleanup.sh:/cleanup.sh" \
-    certbot/certbot:latest \
+    ${CERTBOT_IMAGE} \
       certonly \
         --non-interactive \
         --agree-tos \
@@ -372,6 +376,43 @@ EOF
         --authenticator manual \
         --manual-auth-hook /auth.sh \
         --manual-cleanup-hook /cleanup.sh \
+        -d "*.${WILDCARD_DOMAIN}"
+
+  sudo chown -R ${USER}:$(id -gn) /home/${USER}/apps/tls/cfg
+}
+
+function gencertssh(){
+  sudo rm -rf /home/${USER}/apps/tls
+
+  mkdir -p /home/${USER}/apps/tls/cfg /home/${USER}/apps/tls/logs
+
+  if ! docker image inspect ${CERTBOT_IMAGE} &>/dev/null; then
+    docker build -t ${CERTBOT_IMAGE} ${script_dir}/certbot
+  fi
+
+  cat > /home/${USER}/apps/tls/auth.sh << 'EOF'
+#!/bin/sh
+echo $CERTBOT_DOMAIN
+echo $CERTBOT_VALIDATION
+ssh -o StrictHostKeyChecking=no api@dynv6.com hosts $CERTBOT_DOMAIN records set _acme-challenge txt data $CERTBOT_VALIDATION
+sleep 45
+EOF
+
+  chmod +x /home/${USER}/apps/tls/auth.sh
+
+  docker run --rm --name certbot \
+    -v "/home/${USER}/.ssh:/root/.ssh:ro" \
+    -v "/home/${USER}/apps/tls/cfg:/etc/letsencrypt" \
+    -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" \
+    -v "/home/${USER}/apps/tls/auth.sh:/auth.sh" \
+    ${CERTBOT_IMAGE} \
+      certonly \
+        --non-interactive \
+        --agree-tos \
+        --email ${EMAIL} \
+        --preferred-challenges dns \
+        --authenticator manual \
+        --manual-auth-hook /auth.sh \
         -d "*.${WILDCARD_DOMAIN}"
 
   sudo chown -R ${USER}:$(id -gn) /home/${USER}/apps/tls/cfg
