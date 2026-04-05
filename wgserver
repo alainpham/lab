@@ -27,6 +27,7 @@ function runsvc(){
         "p20|lpro"
         "p21|lg15"
         "p22|mbm1"
+        "p23|idea"
         # phones & tablets
         "p40|iphone 8s quang"
         "p41|ipad air quang"
