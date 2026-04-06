@@ -132,13 +132,9 @@ export SYNCTHING_HUB_ADDRVPN="tcp://10.13.13.2:22000"
 
 if curl -connect-timeout 3 --max-time 3 -fsSL http://192.168.8.100:8384/rest/noauth/health; then
     export SYNCTHING_HUB_HOSTIP=192.168.8.100
-    export SYNCTHING_HUB_APIURL="http://192.168.8.100:8384"
-    export SYNCTHING_HUB_APIKEY=$(ssh user@192.168.8.100  "grep -oP '(?<=<apikey>).*?(?=</apikey>)' ~/apps/syncthing/data/config.xml")
     echo "using lan endpoint"
 else
     export SYNCTHING_HUB_HOSTIP=10.13.13.2
-    export SYNCTHING_HUB_APIURL="http://10.13.13.2:8384"
-    export SYNCTHING_HUB_APIKEY=$(ssh user@10.13.13.2  "grep -oP '(?<=<apikey>).*?(?=</apikey>)' ~/apps/syncthing/data/config.xml")
     echo "using wireguard vpn endpoint"
 fi
 
