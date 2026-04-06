@@ -112,6 +112,7 @@ curl -X PATCH http://localhost:8384/rest/config/options \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"globalAnnounceEnabled": false, "localAnnounceEnabled": false, "urAccepted": -1}'
+  echo "deactivated discovery"
 # ##### DEACTIVATE DISCOVERY
 
 # ##### SET GUI PASSWORD
@@ -119,6 +120,7 @@ curl -X PATCH http://localhost:8384/rest/config/gui \
   -H "X-API-Key: $API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"user":"user","password":"$2y$05$sm/CRM2ip72y1NhHnGCznej.DcLEN4VxG2XHcJNWDQSKyfa0w37ia"}'
+echo "GUI password set"
 # ##### SET GUI PASSWORD
 
 
