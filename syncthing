@@ -74,7 +74,7 @@ function runsvc(){
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/var/syncthing/config:rw" \
-        -v "/home/$TARGET_USERNAME/syncthing:/home/$TARGET_USERNAME/syncthing" \
+        -v "/home/$TARGET_USERNAME/syncthing:/home/$TARGET_USERNAME/syncthing:rw" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8384" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
@@ -88,10 +88,148 @@ function runsvc(){
     
 }
 
+
 function post_start_tasks(){
     
-    service_name=$1
+service_name=$1
 
-    # Add any post-start tasks here
-    return 0
+API_KEY=$(grep -oP '(?<=<apikey>).*?(?=</apikey>)' ~/apps/syncthing/data/config.xml)
+# Get local device ID (try config file first, fall back to system status)
+MY_ID=$(curl -s -H "X-API-Key: $API_KEY" http://localhost:8384/rest/system/status | grep -oP '"myID"\s*:\s*"\K[^"]+')
+
+# ##### SET DEVICE NAME
+curl -X PATCH \
+-H "X-API-Key: $API_KEY" \
+-H "Content-Type: application/json" \
+-d "{\"name\": \"$HOSTNAME\"}" \
+http://localhost:8384/rest/config/devices/$MY_ID
+
+echo "Requested rename of device $MY_ID -> $HOSTNAME"
+# ##### END SET DEVICE NAME
+
+# ##### DEACTIVATE DISCOVERY
+curl -X PATCH http://localhost:8384/rest/config/options \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"globalAnnounceEnabled": false, "localAnnounceEnabled": false, "urAccepted": -1}'
+# ##### DEACTIVATE DISCOVERY
+
+# ##### SET GUI PASSWORD
+curl -X PATCH http://localhost:8384/rest/config/gui \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"user":"user","password":"$2y$05$sm/CRM2ip72y1NhHnGCznej.DcLEN4VxG2XHcJNWDQSKyfa0w37ia"}'
+# ##### SET GUI PASSWORD
+
+
+# ##### ENROLLING NEW DEVICES
+if [ "$HOSTNAME" != "aaon" ]; then
+
+export SYNCTHING_HUB_ADDR="tcp://192.168.8.100:22000"
+export SYNCTHING_HUB_ADDRVPN="tcp://10.13.13.2:22000"
+
+if curl -connect-timeout 3 --max-time 3 -fsSL http://192.168.8.100:8384/rest/noauth/health; then
+    export SYNCTHING_HUB_HOSTIP=192.168.8.100
+    export SYNCTHING_HUB_APIURL="http://192.168.8.100:8384"
+    export SYNCTHING_HUB_APIKEY=$(ssh user@192.168.8.100  "grep -oP '(?<=<apikey>).*?(?=</apikey>)' ~/apps/syncthing/data/config.xml")
+    echo "using lan endpoint"
+else
+    export SYNCTHING_HUB_HOSTIP=10.13.13.2
+    export SYNCTHING_HUB_APIURL="http://10.13.13.2:8384"
+    export SYNCTHING_HUB_APIKEY=$(ssh user@10.13.13.2  "grep -oP '(?<=<apikey>).*?(?=</apikey>)' ~/apps/syncthing/data/config.xml")
+    echo "using wireguard vpn endpoint"
+fi
+
+export SYNCTHING_HUB_APIURL="http://${SYNCTHING_HUB_HOSTIP}:8384"
+export SYNCTHING_HUB_APIKEY=$(ssh user@${SYNCTHING_HUB_HOSTIP}  "grep -oP '(?<=<apikey>).*?(?=</apikey>)' ~/apps/syncthing/data/config.xml")
+export SYNCTHING_HUB_ID=$(curl -s -H "X-API-Key: $SYNCTHING_HUB_APIKEY" ${SYNCTHING_HUB_APIURL}/rest/system/status | grep -oP '"myID"\s*:\s*"\K[^"]+')
+
+# ##### ADD DEVICE ON CENTRAL SERVER
+DEVICE_JSON=$(cat <<EOF
+{
+    "deviceID": "$MY_ID",
+    "name": "$HOSTNAME",
+    "autoAcceptFolders": true
+}
+EOF
+)
+
+curl -s -X POST \
+    -H "X-API-Key: $SYNCTHING_HUB_APIKEY" \
+    -H "Content-Type: application/json" \
+    -d "$DEVICE_JSON" \
+    $SYNCTHING_HUB_APIURL/rest/config/devices
+
+echo "New device added on central server"
+# ##### ADD DEVICE ON CENTRAL SERVER
+
+# ##### ADD CENTRAL TO LOCAL
+DEVICE_JSON=$(cat <<EOF
+{
+    "deviceID": "$SYNCTHING_HUB_ID",
+    "addresses": ["$SYNCTHING_HUB_ADDR","$SYNCTHING_HUB_ADDRVPN"]
+}
+EOF
+)
+
+curl -s -X POST \
+    -H "X-API-Key: $API_KEY" \
+    -H "Content-Type: application/json" \
+    -d "$DEVICE_JSON" \
+    http://localhost:8384/rest/config/devices
+echo "Central server added on local device"
+# ##### ADD CENTRAL TO LOCAL
+fi
+
+# ##### SETTING UP SHARED FOLDERS
+
+### PPSSPP does not support reconfiguring state folder so done through links
+mkdir -p /home/${USER}/syncthing/ppsspp/SAVEDATA
+mkdir -p /home/${USER}/syncthing/ppsspp/PPSSPP_STATE
+
+rm -rf /home/${USER}/.config/ppsspp/PSP/SAVEDATA
+rm -rf /home/${USER}/.config/ppsspp/PSP/PPSSPP_STATE
+
+ln -sf /home/${USER}/syncthing/ppsspp/SAVEDATA /home/${USER}/.config/ppsspp/PSP/SAVEDATA
+ln -sf /home/${USER}/syncthing/ppsspp/PPSSPP_STATE /home/${USER}/.config/ppsspp/PSP/PPSSPP_STATE
+
+# Define key+folder list (format: id|path). Add as many lines as needed.
+entries=(
+    "syncthing|/home/${USER}/syncthing"
+)
+
+# Loop through list, build JSON and POST each folder to the Syncthing API
+for entry in "${entries[@]}"; do
+    FOLDER_ID="${entry%%|*}"
+    PATH_ON_HOST="${entry#*|}"
+
+FOLDER_JSON=$(cat <<EOF
+{
+    "id": "$FOLDER_ID",
+    "path": "$PATH_ON_HOST",
+    "devices": [
+        {
+            "deviceID": "$SYNCTHING_HUB_ID"
+        }
+    ]
+}
+EOF
+)
+
+
+curl -X DELETE -H "X-API-Key: ${API_KEY}" http://localhost:8384/rest/config/folders/${FOLDER_ID}
+echo "purged folder $FOLDER_ID"
+
+curl -s -X POST \
+    -H "X-API-Key: $API_KEY" \
+    -H "Content-Type: application/json" \
+    -d "$FOLDER_JSON" \
+    http://localhost:8384/rest/config/folders
+echo "created folder $FOLDER_ID"
+
+done
+# ##### END ENROLLING NEW DEVICES
+
+
+return 0
 }
