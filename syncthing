@@ -74,7 +74,7 @@ function runsvc(){
         -e PGID=${exec_as_group} \
         -e TZ=Europe/Paris \
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/var/syncthing/config:rw" \
-        -v "/home/$TARGET_USERNAME/syncthing:/home/$TARGET_USERNAME/syncthing"
+        -v "/home/$TARGET_USERNAME/syncthing:/home/$TARGET_USERNAME/syncthing" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8384" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
