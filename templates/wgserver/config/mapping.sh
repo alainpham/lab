@@ -1,3 +1,6 @@
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 peersmapping=(
     # servers
     "aaon|p2"
@@ -36,4 +39,4 @@ get_peer_value() {
 if [[ -n "$1" ]]; then
     get_peer_value "$1"
 fi
-
+cat $SCRIPT_DIR/../data/peer_$1/peer_$1.conf
