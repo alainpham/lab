@@ -37,6 +37,6 @@ get_peer_value() {
 
 # Usage: get_peer_value "aaon"
 if [[ -n "$1" ]]; then
-    get_peer_value "$1"
+    peernb=$(get_peer_value "$1")
+    cat $SCRIPT_DIR/../data/peer_$peernb/peer_$peernb.conf
 fi
-cat $SCRIPT_DIR/../data/peer_$1/peer_$1.conf
