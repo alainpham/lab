@@ -5,9 +5,9 @@ export script_dir="$(cd "$(dirname "${BASH_SOURCE}")" && pwd)"
 export DOCKER_NETWORK_NAME=primenet
 export DOCKER_NETWORK_SUBNET=18
 export DATA_ROOT_FOLDER=/home/${USER}/apps
-export WILDCARD_DOMAIN=zez.duckdns.org
+export WILDCARD_DOMAIN=houze.dns.army
 export EXPOSE_BINDADDRESS=127.0.0.1
-export EMAIL=admin@zez.duckdns.org
+export EMAIL=admin@houze.dns.army
 export CERTBOT_IMAGE=certbot-custom:latest
 
 source $script_dir/secret
