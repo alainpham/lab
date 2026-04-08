@@ -422,7 +422,7 @@ function gencertssh(){
 echo $CERTBOT_DOMAIN
 echo $CERTBOT_VALIDATION
 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null api@dynv6.com hosts $CERTBOT_DOMAIN records set _acme-challenge txt data $CERTBOT_VALIDATION
-sleep 45
+sleep 10
 EOF
 
   chmod +x /home/${USER}/apps/tls/auth.sh
