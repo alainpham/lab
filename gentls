@@ -7,7 +7,7 @@
 #   gentls --ca-only     - generate/renew the CA only
 #   gentls --install-ca    - install CA into system trust store (requires sudo)
 #   gentls --uninstall-ca  - remove CA from system trust store (requires sudo)
-#   gentls --firefox       - print instructions for Firefox CA import
+
 
 set -euo pipefail
 
@@ -194,26 +194,6 @@ case "${1:-}" in
       echo "   Done: ${db}"
     done
     echo "   Restart Firefox to apply."
-    ;;
-
-  --firefox)
-    echo ""
-    echo "Firefox CA import instructions:"
-    echo ""
-    echo "  1. Open Firefox"
-    echo "  2. Go to: Settings > Privacy & Security > Certificates > View Certificates"
-    echo "  3. Click the 'Authorities' tab"
-    echo "  4. Click 'Import' and select:"
-    echo "       ${CA_CERT}"
-    echo "  5. Check 'Trust this CA to identify websites'"
-    echo "  6. Click OK and restart Firefox"
-    echo ""
-    echo "Alternatively, import via command line:"
-    echo "  # For each Firefox profile:"
-    for db in "${HOME}/.mozilla/firefox"/*.default* "${HOME}/.var/app/org.mozilla.firefox/config/mozilla/firefox"/*.default*; do
-      echo "  certutil -A -n 'LocalLab-CA' -t 'CT,,' -i '${CA_CERT}' -d sql:${db}"
-    done
-    echo ""
     ;;
 
   --ca-only)
