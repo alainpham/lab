@@ -130,7 +130,7 @@ if [ "$HOSTNAME" != "aaon" ]; then
 export SYNCTHING_HUB_ADDR="tcp://192.168.8.100:22000"
 export SYNCTHING_HUB_ADDRVPN="tcp://10.13.13.2:22000"
 
-if curl -connect-timeout 3 --max-time 3 -fsSL http://192.168.8.100:8384/rest/noauth/health; then
+if curl -fsSL --max-time 3 http://192.168.8.100:8384/rest/noauth/health; then
     export SYNCTHING_HUB_HOSTIP=192.168.8.100
     echo "using lan endpoint"
 else
