@@ -20,7 +20,7 @@ function runsvc(){
         -e "POSTGRES_USER=admin" \
         -e "POSTGRES_PASSWORD=password" \
         -e "POSTGRES_DB=db" \
-        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/var/lib/postgresql/data:rw" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/var/lib/postgresql:rw" \
         -l "traefik.enable=false" \
         -p "${EXPOSE_BINDADDRESS}:5432:5432" \
         ${service_image}
