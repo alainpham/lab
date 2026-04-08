@@ -6,6 +6,7 @@ export DOCKER_NETWORK_NAME=primenet
 export DOCKER_NETWORK_SUBNET=18
 export DATA_ROOT_FOLDER=/home/${USER}/apps
 export WILDCARD_DOMAIN=houze.dns.army
+export K3S_WILDCARD_DOMAIN=kubes.dns.army
 export EXPOSE_BINDADDRESS=127.0.0.1
 export EMAIL=admin@houze.dns.army
 export CERTBOT_IMAGE=certbot-custom:latest
@@ -140,11 +141,14 @@ export llamacpp_image=ghcr.io/ggml-org/llama.cpp:server-vulkan
 # https://hub.docker.com/r/dockurr/windows/tags
 export windows_image=dockurr/windows:5.14
 
-# devuan os
+# ubuntu os
 export ubuntu_image=docker.io/ubuntu:noble
 
+# ubuntu os
+export k3s_image=docker.io/rancher/k3s:v1.34.6-k3s1
+
 # frigate https://github.com/blakeblackshear/frigate/releases
-export frigate_image=ghcr.io/blakeblackshear/frigate:0.16.3
+export frigate_image=ghcr.io/blakeblackshear/frigate:0.17.1
 
 
 # Helper functions
@@ -344,75 +348,75 @@ function check_updates(){
   done < <(docker ps --format '{{.Names}}' | sort)
 }
 
-function gencertcurl(){
-  sudo rm -rf /home/${USER}/apps/tls
+# function gencertcurl(){
+#   sudo rm -rf /home/${USER}/apps/tls
 
-  mkdir -p /home/${USER}/apps/tls/cfg /home/${USER}/apps/tls/logs
+#   mkdir -p /home/${USER}/apps/tls/cfg /home/${USER}/apps/tls/logs
 
-  if ! docker image inspect ${CERTBOT_IMAGE} &>/dev/null; then
-    docker build -t ${CERTBOT_IMAGE} ${script_dir}/certbot
-  fi
+#   if ! docker image inspect ${CERTBOT_IMAGE} &>/dev/null; then
+#     docker build -t ${CERTBOT_IMAGE} ${script_dir}/certbot
+#   fi
 
-  cat > /home/${USER}/apps/tls/auth.sh << 'EOF'
-#!/bin/sh
-ZONE=$(echo "$CERTBOT_DOMAIN" | sed 's/^\*\.//')
+#   cat > /home/${USER}/apps/tls/auth.sh << 'EOF'
+# #!/bin/sh
+# ZONE=$(echo "$CERTBOT_DOMAIN" | sed 's/^\*\.//')
 
-ZONE_ID=$(curl -s \
-  -H "Authorization: Bearer $DNS_TOKEN" \
-  -H "Accept: application/json" \
-  "https://dynv6.com/api/v2/zones/by-name/$ZONE" \
-  | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+# ZONE_ID=$(curl -s \
+#   -H "Authorization: Bearer $DNS_TOKEN" \
+#   -H "Accept: application/json" \
+#   "https://dynv6.com/api/v2/zones/by-name/$ZONE" \
+#   | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
 
-RECORD_ID=$(curl -s -X POST \
-  -H "Authorization: Bearer $DNS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d "{\"type\":\"TXT\",\"name\":\"_acme-challenge\",\"data\":\"$CERTBOT_VALIDATION\"}" \
-  "https://dynv6.com/api/v2/zones/$ZONE_ID/records" \
-  | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+# RECORD_ID=$(curl -s -X POST \
+#   -H "Authorization: Bearer $DNS_TOKEN" \
+#   -H "Content-Type: application/json" \
+#   -d "{\"type\":\"TXT\",\"name\":\"_acme-challenge\",\"data\":\"$CERTBOT_VALIDATION\"}" \
+#   "https://dynv6.com/api/v2/zones/$ZONE_ID/records" \
+#   | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
 
-echo "$RECORD_ID" > /tmp/dynv6_record_id
+# echo "$RECORD_ID" > /tmp/dynv6_record_id
 
-sleep 15
-EOF
+# sleep 15
+# EOF
 
-  cat > /home/${USER}/apps/tls/cleanup.sh << 'EOF'
-#!/bin/sh
-ZONE=$(echo "$CERTBOT_DOMAIN" | sed 's/^\*\.//')
+#   cat > /home/${USER}/apps/tls/cleanup.sh << 'EOF'
+# #!/bin/sh
+# ZONE=$(echo "$CERTBOT_DOMAIN" | sed 's/^\*\.//')
 
-ZONE_ID=$(curl -s \
-  -H "Authorization: Bearer $DNS_TOKEN" \
-  -H "Accept: application/json" \
-  "https://dynv6.com/api/v2/zones/by-name/$ZONE" \
-  | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+# ZONE_ID=$(curl -s \
+#   -H "Authorization: Bearer $DNS_TOKEN" \
+#   -H "Accept: application/json" \
+#   "https://dynv6.com/api/v2/zones/by-name/$ZONE" \
+#   | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
 
-RECORD_ID=$(cat /tmp/dynv6_record_id)
+# RECORD_ID=$(cat /tmp/dynv6_record_id)
 
-curl -s -X DELETE \
-  -H "Authorization: Bearer $DNS_TOKEN" \
-  "https://dynv6.com/api/v2/zones/$ZONE_ID/records/$RECORD_ID"
-EOF
+# curl -s -X DELETE \
+#   -H "Authorization: Bearer $DNS_TOKEN" \
+#   "https://dynv6.com/api/v2/zones/$ZONE_ID/records/$RECORD_ID"
+# EOF
 
-  chmod +x /home/${USER}/apps/tls/auth.sh /home/${USER}/apps/tls/cleanup.sh
+#   chmod +x /home/${USER}/apps/tls/auth.sh /home/${USER}/apps/tls/cleanup.sh
 
-  docker run --rm --name certbot \
-    -e DNS_TOKEN=${DNS_TOKEN} \
-    -v "/home/${USER}/apps/tls/cfg:/etc/letsencrypt" \
-    -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" \
-    -v "/home/${USER}/apps/tls/auth.sh:/auth.sh" \
-    -v "/home/${USER}/apps/tls/cleanup.sh:/cleanup.sh" \
-    ${CERTBOT_IMAGE} \
-      certonly \
-        --non-interactive \
-        --agree-tos \
-        --email ${EMAIL} \
-        --preferred-challenges dns \
-        --authenticator manual \
-        --manual-auth-hook /auth.sh \
-        --manual-cleanup-hook /cleanup.sh \
-        -d "*.${WILDCARD_DOMAIN}"
+#   docker run --rm --name certbot \
+#     -e DNS_TOKEN=${DNS_TOKEN} \
+#     -v "/home/${USER}/apps/tls/cfg:/etc/letsencrypt" \
+#     -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" \
+#     -v "/home/${USER}/apps/tls/auth.sh:/auth.sh" \
+#     -v "/home/${USER}/apps/tls/cleanup.sh:/cleanup.sh" \
+#     ${CERTBOT_IMAGE} \
+#       certonly \
+#         --non-interactive \
+#         --agree-tos \
+#         --email ${EMAIL} \
+#         --preferred-challenges dns \
+#         --authenticator manual \
+#         --manual-auth-hook /auth.sh \
+#         --manual-cleanup-hook /cleanup.sh \
+#         -d "*.${WILDCARD_DOMAIN}"
 
-  sudo chown -R ${USER}:$(id -gn) /home/${USER}/apps/tls/cfg
-}
+#   sudo chown -R ${USER}:$(id -gn) /home/${USER}/apps/tls/cfg
+# }
 
 function gencertssh(){
   sudo rm -rf /home/${USER}/apps/tls
@@ -454,6 +458,21 @@ EOF
         --authenticator manual \
         --manual-auth-hook /auth.sh \
         -d "*.${WILDCARD_DOMAIN}"
+
+  docker run --rm --name certbot \
+    -v "${SSHFOLDER}:/root/.ssh:ro" \
+    -v "/home/${USER}/apps/tls/cfg:/etc/letsencrypt" \
+    -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" \
+    -v "/home/${USER}/apps/tls/auth.sh:/auth.sh" \
+    ${CERTBOT_IMAGE} \
+      certonly \
+        --non-interactive \
+        --agree-tos \
+        --email ${EMAIL} \
+        --preferred-challenges dns \
+        --authenticator manual \
+        --manual-auth-hook /auth.sh \
+        -d "*.${K3S_WILDCARD_DOMAIN}"
 
   sudo chown -R ${USER}:$(id -gn) /home/${USER}/apps/tls/cfg
 }

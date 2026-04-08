@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# configuration
+export exec_as_user=0
+export exec_as_group=0
+export service_check_path=":6443"
+export service_check_tcponly=true
+
+function runsvc(){
+
+    service_name=$1
+    service_image=$2
+
+    docker run -d \
+        --name "${service_name}" \
+	    --privileged \
+        --hostname "${service_name}" \
+        --restart unless-stopped \
+        --user "${exec_as_user}:${exec_as_group}" \
+        --network ${DOCKER_NETWORK_NAME} \
+        -e "K3S_KUBECONFIG_MODE="644"" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data/var/lib/rancher/k3s:/var/lib/rancher/k3s:rw" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data/etc/rancher/k3s:/etc/rancher/k3s:rw" \
+        -l "traefik.enable=true" \
+        -l "traefik.http.services.${service_name}.loadbalancer.server.port=6443" \
+        -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=https" \
+        -l "traefik.http.routers.${service_name}.service=${service_name}" \
+        -l "traefik.http.routers.${service_name}.entrypoints=https" \
+        -l "traefik.http.routers.${service_name}.tls=true" \
+        -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
+        -p "${EXPOSE_BINDADDRESS}:6443:6443" \
+        ${service_image} \
+        server --disable=servicelb,traefik
+    
+}
+
+function post_start_tasks(){
+    
+    service_name=$1
+
+    # Add any post-start tasks here
+    return 0
+}
