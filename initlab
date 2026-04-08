@@ -232,7 +232,7 @@ if [ "$1" == "help" ]; then
   echo "  rm <service_name>       - Remove the specified service container."
   echo "  destroy <service_name>  - Stop, remove the container, and delete its configuration and data."
   echo "  rerun <service_name>    - destroy and run again"
-  echo "  recreate <service_name> - remove container and run again (keeps data)"
+  echo "  up <service_name>       - remove container and run again (keeps data, updates config)"
   echo "  help                    - Display this help message."
   return 0
 fi
@@ -255,12 +255,12 @@ fi
 #script should define function service_name_run, and export http port and servicecheckpath
 source "$service_script"
 
-if [ "$command" == "stop" ] || [ "$command" == "rm" ] || [ "$command" == "destroy" ] || [ "$command" == "rerun" ] || [ "$command" == "recreate" ]; then
+if [ "$command" == "stop" ] || [ "$command" == "rm" ] || [ "$command" == "destroy" ] || [ "$command" == "rerun" ] || [ "$command" == "up" ]; then
   echo "Stopping container ${service_name}..."
   docker stop ${service_name}
 fi
 
-if [ "$command" == "rm" ] || [ "$command" == "destroy" ] || [ "$command" == "rerun" ] || [ "$command" == "recreate" ]; then
+if [ "$command" == "rm" ] || [ "$command" == "destroy" ] || [ "$command" == "rerun" ] || [ "$command" == "up" ]; then
   echo "Removing container ${service_name}..."
   docker rm ${service_name}
 fi
@@ -270,7 +270,7 @@ if [ "$command" == "destroy" ] || [ "$command" == "rerun" ]; then
 fi
 
 
-if [ "$command" == "rerun" ] || [ "$command" == "run" ] || [ "$command" == "recreate" ] ; then
+if [ "$command" == "rerun" ] || [ "$command" == "run" ] || [ "$command" == "up" ] ; then
     
     networking
 
@@ -425,10 +425,17 @@ ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null api@dynv6.com ho
 sleep 10
 EOF
 
+  if [ -d "/home/${USER}/ssh" ]; then
+    export SSHFOLDER=/home/${USER}/ssh
+  else
+    export SSHFOLDER=/home/${USER}/.ssh
+  fi
+
+
   chmod +x /home/${USER}/apps/tls/auth.sh
 
   docker run --rm --name certbot \
-    -v "/home/${USER}/.ssh:/root/.ssh:ro" \
+    -v "${SSHFOLDER}:/root/.ssh:ro" \
     -v "/home/${USER}/apps/tls/cfg:/etc/letsencrypt" \
     -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" \
     -v "/home/${USER}/apps/tls/auth.sh:/auth.sh" \

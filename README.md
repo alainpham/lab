@@ -5,6 +5,7 @@ touch secret
 echo "export DUCKDNS_TOKEN=xxx" | tee secret
 source initab
 
+
 # essentials
 lab run traefik
 lab run portainer
