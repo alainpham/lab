@@ -18,7 +18,7 @@ source $script_dir/secret
 
 # https://hub.docker.com/_/traefik/tags?page=1&name=3.
 # https://github.com/traefik/traefik/releases/latest
-export traefik_image=docker.io/traefik:3.6.12
+export traefik_image=docker.io/traefik:3.6.13
 
 # https://hub.docker.com/r/portainer/portainer-ce/tags?page=1&name=2.
 # https://github.com/portainer/portainer/releases/latest
