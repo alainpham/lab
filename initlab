@@ -43,7 +43,7 @@ export keycloak_image=quay.io/keycloak/keycloak:26.5.7-0
 # Observability stack
 
 # https://hub.docker.com/r/prom/prometheus/tags?page=1&name=3.
-export prometheus_image=prom/prometheus:v3.11.0
+export prometheus_image=prom/prometheus:v3.11.1
 
 # https://hub.docker.com/r/grafana/loki/tags?page=1&name=3.
 export loki_image=grafana/loki:3.7.1
@@ -96,10 +96,16 @@ export artemis_image=apache/activemq-artemis:2.44.0
 # https://hub.docker.com/r/linuxserver/jellyfin/tags?page=1&name=10.
 export jellyfin_image=linuxserver/jellyfin:10.11.7
 
+# https://github.com/codersandbox/mediadl/pkgs/container/mediadl
 export mediadl_image=ghcr.io/codersandbox/mediadl:1.4.1
+
+# https://github.com/codersandbox/rentman/pkgs/container/rentman
 export rentman_image=ghcr.io/codersandbox/rentman:2.0.1
+
+# https://github.com/codersandbox/pkdex/pkgs/container/pkdex
 export pkdex_image=ghcr.io/codersandbox/pkdex:2.0.0
 
+# https://github.com/codersandbox/grgr/pkgs/container/grgr
 export grgr_image=ghcr.io/codersandbox/grgr:1.0.0
 
 # https://hub.docker.com/r/linuxserver/wireguard/tags?name=1.
