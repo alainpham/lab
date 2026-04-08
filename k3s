@@ -28,7 +28,13 @@ function runsvc(){
         -l "traefik.http.routers.${service_name}.entrypoints=https" \
         -l "traefik.http.routers.${service_name}.tls=true" \
         -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
-        -p "${EXPOSE_BINDADDRESS}:6443:6443" \
+        -l "traefik.http.routers.${service_name}-k3s.rule=HostRegexp(\`.*\.${K3S_WILDCARD_DOMAIN}\`)" \
+        -l "traefik.http.routers.${service_name}-k3s.entrypoints=https" \
+        -l "traefik.http.routers.${service_name}-k3s.tls=true" \
+        -l "traefik.http.routers.${service_name}-k3s.service=${service_name}-k3s" \
+        -l "traefik.http.services.${service_name}-k3s.loadbalancer.server.port=443" \
+        -l "traefik.http.services.${service_name}-k3s.loadbalancer.server.scheme=https" \
+-p "${EXPOSE_BINDADDRESS}:6443:6443" \
         ${service_image} \
         server --disable=servicelb,traefik
     

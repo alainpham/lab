@@ -4,3 +4,8 @@ tls:
       defaultCertificate:
           keyFile: "/certs/cfg/live/${WILDCARD_DOMAIN}/privkey.pem"
           certFile: "/certs/cfg/live/${WILDCARD_DOMAIN}/fullchain.pem"
+  certificates:
+    - keyFile: "/certs/cfg/live/${WILDCARD_DOMAIN}/privkey.pem"
+      certFile: "/certs/cfg/live/${WILDCARD_DOMAIN}/fullchain.pem"
+    - keyFile: "/certs/cfg/live/${K3S_WILDCARD_DOMAIN}/privkey.pem"
+      certFile: "/certs/cfg/live/${K3S_WILDCARD_DOMAIN}/fullchain.pem"
