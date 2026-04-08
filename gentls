@@ -1,0 +1,247 @@
+#!/bin/bash
+# gentls - Generate self-signed TLS certificates trusted by browsers
+#
+# Usage:
+#   gentls               - generate wildcard certs for WILDCARD_DOMAIN and K3S_WILDCARD_DOMAIN
+#   gentls domain [...]  - generate cert for custom domain(s)
+#   gentls --ca-only     - generate/renew the CA only
+#   gentls --install-ca    - install CA into system trust store (requires sudo)
+#   gentls --uninstall-ca  - remove CA from system trust store (requires sudo)
+#   gentls --firefox       - print instructions for Firefox CA import
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -z "${DATA_ROOT_FOLDER:-}" ]; then
+  source "${SCRIPT_DIR}/initlab"
+fi
+
+TLS_DIR="${DATA_ROOT_FOLDER}/tls"
+CA_DIR="${TLS_DIR}/ca"
+LIVE_DIR="${TLS_DIR}/cfg/live"
+CA_KEY="${CA_DIR}/ca.key"
+CA_CERT="${CA_DIR}/ca.crt"
+CA_SUBJECT="/C=FR/ST=Local/L=Local/O=LocalLab/CN=LocalLab-CA"
+CERT_VALIDITY_DAYS=825   # max accepted by modern browsers (< 398 for strict)
+CA_VALIDITY_DAYS=3650
+
+mkdir -p "${CA_DIR}" "${LIVE_DIR}"
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+print_ca_import_instructions() {
+  echo ""
+  echo "┌─ How to trust the CA ──────────────────────────────────────────────┐"
+  echo "│"
+  echo "│  System-wide (Chrome, curl, most tools inherit this):              │"
+  echo "│    gentls --install-ca                                             │"
+  echo "│    (runs: sudo cp ca.crt /usr/local/share/ca-certificates/         │"
+  echo "│           sudo update-ca-certificates)                             │"
+  echo "│"
+  echo "│  Firefox (manages its own trust store):                            │"
+  echo "│    gentls --firefox                                                │"
+  echo "│    — or manually:                                                  │"
+  echo "│    Settings > Privacy & Security > Certificates > View Certificates│"
+  echo "│    > Authorities tab > Import > select: ${CA_CERT}      │"
+  echo "│    Check 'Trust this CA to identify websites'                      │"
+  echo "│"
+  echo "│  CA certificate path: ${CA_CERT}             │"
+  echo "└────────────────────────────────────────────────────────────────────┘"
+  echo ""
+}
+
+generate_ca() {
+  echo ">> Generating local CA key and certificate..."
+  openssl genrsa -out "${CA_KEY}" 4096 2>/dev/null
+  openssl req -new -x509 \
+    -days "${CA_VALIDITY_DAYS}" \
+    -key "${CA_KEY}" \
+    -out "${CA_CERT}" \
+    -subj "${CA_SUBJECT}" \
+    -extensions v3_ca \
+    -addext "basicConstraints=critical,CA:TRUE" \
+    -addext "keyUsage=critical,keyCertSign,cRLSign" \
+    -addext "subjectKeyIdentifier=hash"
+  echo "   CA key:  ${CA_KEY}"
+  echo "   CA cert: ${CA_CERT}"
+  print_ca_import_instructions
+}
+
+generate_cert() {
+  local domains=("$@")
+  local primary="${domains[0]}"
+
+  # Strip leading wildcard star to get the directory name
+  local dir_name
+  dir_name=$(echo "${primary}" | sed 's/^\*\.//')
+
+  local cert_dir="${LIVE_DIR}/${dir_name}"
+  local key_file="${cert_dir}/privkey.pem"
+  local csr_file="${cert_dir}/cert.csr"
+  local crt_file="${cert_dir}/cert.pem"
+  local chain_file="${cert_dir}/chain.pem"
+  local fullchain_file="${cert_dir}/fullchain.pem"
+  local ext_file="${cert_dir}/ext.cnf"
+
+  rm -rf "${cert_dir}"
+  mkdir -p "${cert_dir}"
+
+  echo ">> Generating certificate for: ${domains[*]}"
+
+  # Build SAN list
+  local san=""
+  for d in "${domains[@]}"; do
+    san="${san:+${san},}DNS:${d}"
+  done
+
+  # Extension file (v3 extensions needed for browser trust)
+  cat > "${ext_file}" <<EOF
+authorityKeyIdentifier = keyid,issuer
+basicConstraints       = CA:FALSE
+keyUsage               = critical,digitalSignature,keyEncipherment
+extendedKeyUsage       = serverAuth
+subjectAltName         = ${san}
+EOF
+
+  openssl genrsa -out "${key_file}" 2048 2>/dev/null
+
+  openssl req -new \
+    -key "${key_file}" \
+    -out "${csr_file}" \
+    -subj "/C=FR/ST=Local/L=Local/O=LocalLab/CN=${primary}"
+
+  openssl x509 -req \
+    -days "${CERT_VALIDITY_DAYS}" \
+    -in "${csr_file}" \
+    -CA "${CA_CERT}" \
+    -CAkey "${CA_KEY}" \
+    -CAcreateserial \
+    -out "${crt_file}" \
+    -extfile "${ext_file}" 2>/dev/null
+
+  # chain = CA cert, fullchain = cert + CA cert (same layout as certbot)
+  cp "${CA_CERT}" "${chain_file}"
+  cat "${crt_file}" "${CA_CERT}" > "${fullchain_file}"
+
+  rm -f "${csr_file}" "${ext_file}"
+
+  echo "   Dir:       ${cert_dir}"
+  echo "   privkey:   ${key_file}"
+  echo "   cert:      ${crt_file}"
+  echo "   chain:     ${chain_file}"
+  echo "   fullchain: ${fullchain_file}"
+
+  # Quick verify
+  local not_after
+  not_after=$(openssl x509 -noout -enddate -in "${crt_file}" | sed 's/notAfter=//')
+  echo "   SANs:      ${san}"
+  echo "   Valid until: ${not_after}"
+  echo ""
+}
+
+# ── main ─────────────────────────────────────────────────────────────────────
+
+case "${1:-}" in
+
+  --uninstall-ca)
+    echo ">> Removing CA from system trust store..."
+    sudo rm -f /usr/local/share/ca-certificates/locallab-ca.crt
+    sudo update-ca-certificates --fresh
+
+    echo ">> Removing CA from Chrome NSS database (~/.pki/nssdb)..."
+    if [ -d "${HOME}/.pki/nssdb" ]; then
+      certutil -D -n 'LocalLab-CA' -d "sql:${HOME}/.pki/nssdb" -f /dev/null 2>/dev/null \
+        && echo "   Removed from Chrome NSS database." \
+        || echo "   Not found in Chrome NSS database (already removed?)."
+    else
+      echo "   Chrome NSS database not found, skipping."
+    fi
+
+    echo ">> Removing CA from Firefox NSS databases..."
+    for db in "${HOME}/.mozilla/firefox"/*.default* "${HOME}/snap/firefox/common/.mozilla/firefox"/*.default* "${HOME}/.var/app/org.mozilla.firefox/config/mozilla/firefox"/*.default*; do
+      [ -d "${db}" ] || continue
+      certutil -D -n 'LocalLab-CA' -d "sql:${db}" -f /dev/null 2>/dev/null \
+        && echo "   Removed from: ${db}" \
+        || echo "   Not found in: ${db}"
+    done
+
+    echo "Done. Restart Chrome and Firefox to apply."
+    ;;
+
+  --install-ca)
+    if [ ! -f "${CA_CERT}" ]; then
+      echo "No CA found. Run 'gentls' first to generate it."
+      exit 1
+    fi
+
+    echo ">> Installing CA into system trust store (curl, system tools)..."
+    sudo cp "${CA_CERT}" /usr/local/share/ca-certificates/locallab-ca.crt
+    sudo update-ca-certificates
+
+    echo ">> Installing CA into Chrome NSS database (~/.pki/nssdb)..."
+    # Wipe and recreate to ensure no password is set
+    rm -rf "${HOME}/.pki/nssdb"
+    mkdir -p "${HOME}/.pki/nssdb"
+    certutil -N -d "sql:${HOME}/.pki/nssdb" --empty-password
+    certutil -A -n 'LocalLab-CA' -t 'CT,,' -i "${CA_CERT}" -d "sql:${HOME}/.pki/nssdb" -f /dev/null
+    echo "   Done. Restart Chrome to apply."
+
+    echo ">> Installing CA into Firefox NSS databases..."
+    for db in "${HOME}/.mozilla/firefox"/*.default* "${HOME}/snap/firefox/common/.mozilla/firefox"/*.default* "${HOME}/.var/app/org.mozilla.firefox/config/mozilla/firefox"/*.default*; do
+      [ -d "${db}" ] || continue
+      certutil -D -n 'LocalLab-CA' -d "sql:${db}" -f /dev/null 2>/dev/null || true
+      certutil -A -n 'LocalLab-CA' -t 'CT,,' -i "${CA_CERT}" -d "sql:${db}" -f /dev/null
+      echo "   Done: ${db}"
+    done
+    echo "   Restart Firefox to apply."
+    ;;
+
+  --firefox)
+    echo ""
+    echo "Firefox CA import instructions:"
+    echo ""
+    echo "  1. Open Firefox"
+    echo "  2. Go to: Settings > Privacy & Security > Certificates > View Certificates"
+    echo "  3. Click the 'Authorities' tab"
+    echo "  4. Click 'Import' and select:"
+    echo "       ${CA_CERT}"
+    echo "  5. Check 'Trust this CA to identify websites'"
+    echo "  6. Click OK and restart Firefox"
+    echo ""
+    echo "Alternatively, import via command line:"
+    echo "  # For each Firefox profile:"
+    for db in "${HOME}/.mozilla/firefox"/*.default* "${HOME}/.var/app/org.mozilla.firefox/config/mozilla/firefox"/*.default*; do
+      echo "  certutil -A -n 'LocalLab-CA' -t 'CT,,' -i '${CA_CERT}' -d sql:${db}"
+    done
+    echo ""
+    ;;
+
+  --ca-only)
+    generate_ca
+    ;;
+
+  "")
+    # No args: generate CA + default wildcard certs
+    if [ ! -f "${CA_KEY}" ] || [ ! -f "${CA_CERT}" ]; then
+      generate_ca
+    else
+      echo ">> CA already exists at ${CA_CERT} (delete to regenerate)"
+    fi
+    echo ""
+    generate_cert "${WILDCARD_DOMAIN}" "*.${WILDCARD_DOMAIN}"
+    generate_cert "${K3S_WILDCARD_DOMAIN}" "*.${K3S_WILDCARD_DOMAIN}"
+    echo "All done. Import the CA once to silence browser warnings:"
+    echo "  gentls --install-ca"
+    ;;
+
+  *)
+    # Custom domains passed as arguments
+    if [ ! -f "${CA_KEY}" ] || [ ! -f "${CA_CERT}" ]; then
+      generate_ca
+    fi
+    generate_cert "$@"
+    echo "Import the CA if you haven't yet:"
+    echo "  gentls --install-ca"
+    ;;
+
+esac

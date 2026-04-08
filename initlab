@@ -348,75 +348,10 @@ function check_updates(){
   done < <(docker ps --format '{{.Names}}' | sort)
 }
 
-# function gencertcurl(){
-#   sudo rm -rf /home/${USER}/apps/tls
 
-#   mkdir -p /home/${USER}/apps/tls/cfg /home/${USER}/apps/tls/logs
-
-#   if ! docker image inspect ${CERTBOT_IMAGE} &>/dev/null; then
-#     docker build -t ${CERTBOT_IMAGE} ${script_dir}/certbot
-#   fi
-
-#   cat > /home/${USER}/apps/tls/auth.sh << 'EOF'
-# #!/bin/sh
-# ZONE=$(echo "$CERTBOT_DOMAIN" | sed 's/^\*\.//')
-
-# ZONE_ID=$(curl -s \
-#   -H "Authorization: Bearer $DNS_TOKEN" \
-#   -H "Accept: application/json" \
-#   "https://dynv6.com/api/v2/zones/by-name/$ZONE" \
-#   | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
-
-# RECORD_ID=$(curl -s -X POST \
-#   -H "Authorization: Bearer $DNS_TOKEN" \
-#   -H "Content-Type: application/json" \
-#   -d "{\"type\":\"TXT\",\"name\":\"_acme-challenge\",\"data\":\"$CERTBOT_VALIDATION\"}" \
-#   "https://dynv6.com/api/v2/zones/$ZONE_ID/records" \
-#   | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
-
-# echo "$RECORD_ID" > /tmp/dynv6_record_id
-
-# sleep 15
-# EOF
-
-#   cat > /home/${USER}/apps/tls/cleanup.sh << 'EOF'
-# #!/bin/sh
-# ZONE=$(echo "$CERTBOT_DOMAIN" | sed 's/^\*\.//')
-
-# ZONE_ID=$(curl -s \
-#   -H "Authorization: Bearer $DNS_TOKEN" \
-#   -H "Accept: application/json" \
-#   "https://dynv6.com/api/v2/zones/by-name/$ZONE" \
-#   | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
-
-# RECORD_ID=$(cat /tmp/dynv6_record_id)
-
-# curl -s -X DELETE \
-#   -H "Authorization: Bearer $DNS_TOKEN" \
-#   "https://dynv6.com/api/v2/zones/$ZONE_ID/records/$RECORD_ID"
-# EOF
-
-#   chmod +x /home/${USER}/apps/tls/auth.sh /home/${USER}/apps/tls/cleanup.sh
-
-#   docker run --rm --name certbot \
-#     -e DNS_TOKEN=${DNS_TOKEN} \
-#     -v "/home/${USER}/apps/tls/cfg:/etc/letsencrypt" \
-#     -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" \
-#     -v "/home/${USER}/apps/tls/auth.sh:/auth.sh" \
-#     -v "/home/${USER}/apps/tls/cleanup.sh:/cleanup.sh" \
-#     ${CERTBOT_IMAGE} \
-#       certonly \
-#         --non-interactive \
-#         --agree-tos \
-#         --email ${EMAIL} \
-#         --preferred-challenges dns \
-#         --authenticator manual \
-#         --manual-auth-hook /auth.sh \
-#         --manual-cleanup-hook /cleanup.sh \
-#         -d "*.${WILDCARD_DOMAIN}"
-
-#   sudo chown -R ${USER}:$(id -gn) /home/${USER}/apps/tls/cfg
-# }
+function gentls(){
+  "${script_dir}/gentls" "$@"
+}
 
 function gencertssh(){
   sudo rm -rf /home/${USER}/apps/tls
@@ -432,7 +367,7 @@ function gencertssh(){
 echo $CERTBOT_DOMAIN
 echo $CERTBOT_VALIDATION
 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null api@dynv6.com hosts $CERTBOT_DOMAIN records set _acme-challenge txt data $CERTBOT_VALIDATION
-sleep 10
+sleep 5
 EOF
 
   if [ -d "/home/${USER}/ssh" ]; then
@@ -440,7 +375,6 @@ EOF
   else
     export SSHFOLDER=/home/${USER}/.ssh
   fi
-
 
   chmod +x /home/${USER}/apps/tls/auth.sh
 
