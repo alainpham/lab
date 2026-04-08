@@ -10,6 +10,9 @@ export EXPOSE_BINDADDRESS=127.0.0.1
 export EMAIL=admin@houze.dns.army
 export CERTBOT_IMAGE=certbot-custom:latest
 
+if [ ! -f "$script_dir/secret" ]; then
+  touch "$script_dir/secret"
+fi
 source $script_dir/secret
 # Platform
 
