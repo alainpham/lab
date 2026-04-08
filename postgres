@@ -30,5 +30,13 @@ function runsvc(){
 function post_start_tasks(){
     
     service_name=$1
+    # adding test data
+    docker exec "${service_name}" psql -U admin -d db -c "CREATE TABLE IF NOT EXISTS people (id SERIAL PRIMARY KEY, name TEXT NOT NULL, age INT);"
+    docker exec "${service_name}" psql -U admin -d db -c "INSERT INTO people (id, name, age) VALUES (1, 'Alice', 30) ON CONFLICT (id) DO NOTHING;"
+    docker exec "${service_name}" psql -U admin -d db -c "INSERT INTO people (id, name, age) VALUES (2, 'Bob', 25) ON CONFLICT (id) DO NOTHING;"
+    docker exec "${service_name}" psql -U admin -d db -c "INSERT INTO people (id, name, age) VALUES (3, 'Charlie', 35) ON CONFLICT (id) DO NOTHING;"
+    docker exec "${service_name}" psql -U admin -d db -c "INSERT INTO people (id, name, age) VALUES (4, 'Diana', 28) ON CONFLICT (id) DO NOTHING;"
+    docker exec "${service_name}" psql -U admin -d db -c "INSERT INTO people (id, name, age) VALUES (5, 'Eve', 40) ON CONFLICT (id) DO NOTHING;"
+    docker exec "${service_name}" psql -U admin -d db -c "SELECT * FROM people;"
     return 0
 }
