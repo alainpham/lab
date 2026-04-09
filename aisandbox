@@ -42,7 +42,7 @@ function runsvc(){
         -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
         -p "${EXPOSE_BINDADDRESS}:8123:8123" \
         ${service_image} \
-        aisandbox sleep infinity
+        sleep infinity
     
 }
 
