@@ -125,6 +125,9 @@ export hass_image=linuxserver/homeassistant:2026.4.1
 # https://hub.docker.com/r/syncthing/syncthing/tags?page=&page_size=&ordering=&name=2.
 export syncthing_image=syncthing/syncthing:2.0.15
 
+# frigate https://github.com/blakeblackshear/frigate/releases
+export frigate_image=ghcr.io/blakeblackshear/frigate:0.17.1
+
 ## AI
 
 # https://hub.docker.com/r/ollama/ollama/tags?name=0.
@@ -144,11 +147,11 @@ export windows_image=dockurr/windows:5.14
 # ubuntu os
 export ubuntu_image=docker.io/ubuntu:noble
 
-# ubuntu os
+# k3s
 export k3s_image=docker.io/rancher/k3s:v1.34.6-k3s1
 
-# frigate https://github.com/blakeblackshear/frigate/releases
-export frigate_image=ghcr.io/blakeblackshear/frigate:0.17.1
+# aisandbox
+export aisandbox_image=docker.io/alainpham/aisandbox:latest
 
 
 # Helper functions
