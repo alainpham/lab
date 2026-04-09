@@ -43,6 +43,7 @@ function runsvc(){
 function post_start_tasks(){
     
     service_name=$1
+    mkdir -p ~/.kube
     cp ${DATA_ROOT_FOLDER}/${service_name}/data/etc/rancher/k3s/k3s.yaml ~/.kube/config
     return 0
 }
