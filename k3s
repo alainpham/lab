@@ -36,7 +36,7 @@ function runsvc(){
         -l "traefik.http.services.${service_name}-k3s.loadbalancer.server.scheme=https" \
 -p "${EXPOSE_BINDADDRESS}:6443:6443" \
         ${service_image} \
-        server --disable=servicelb,traefik
+        server --disable=servicelb,traefik --tls-san 172.18.0.1 --tls-san ${service_name}.${WILDCARD_DOMAIN}
     
 }
 
