@@ -45,5 +45,12 @@ function post_start_tasks(){
     service_name=$1
     mkdir -p ~/.kube
     cp ${DATA_ROOT_FOLDER}/${service_name}/data/etc/rancher/k3s/k3s.yaml ~/.kube/config
+    K8S_PUBLIC_DOMAIN=${service_name}.${WILDCARD_DOMAIN}
+    OLD_CLUSTER=$(kubectl config view --kubeconfig ~/.kube/config -o jsonpath='{.clusters[0].name}')
+    OLD_CONTEXT=$(kubectl config view --kubeconfig ~/.kube/config -o jsonpath='{.contexts[0].name}')
+    sed -i "s|server: https://.*|server: https://$REMOTE_CLUSTER_HOST:6443|g" ~/.kube/config
+    sed -i "/^clusters:/,/^contexts:/s|name: $OLD_CLUSTER$|name: $K8S_PUBLIC_DOMAIN|" ~/.kube/config
+    sed -i "s|cluster: $OLD_CLUSTER$|cluster: $K8S_PUBLIC_DOMAIN|g" ~/.kube/config
+    kubectl config rename-context "$OLD_CONTEXT" "$K8S_PUBLIC_DOMAIN" --kubeconfig ~/.kube/config
     return 0
 }
