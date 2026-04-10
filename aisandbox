@@ -33,6 +33,7 @@ function runsvc(){
         -v ~/workspaces/ai/home/copilot/:/home/user/.copilot \
         -v ~/workspaces/ai/home/opencode/:/home/user/.opencode \
         -v ~/workspaces/ai/home/hermes:/home/user/.hermes \
+        -v ~/.kube/config:/home/user/.kube/config:ro \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8123" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
