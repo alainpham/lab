@@ -28,10 +28,11 @@ function runsvc(){
         -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config:ro" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data:rw" \
         -v ~/workspaces/ai/slop/:/home/user/slop \
+        -v ~/workspaces/ai/home/opencode/share:/home/user/.local/share/opencode \
+        -v ~/workspaces/ai/home/opencode/state:/home/user/.local/state/opencode \
         -v ~/workspaces/ai/home/claude:/home/user/.claude \
         -v ~/workspaces/ai/home/codex:/home/user/.codex \
         -v ~/workspaces/ai/home/copilot/:/home/user/.copilot \
-        -v ~/workspaces/ai/home/opencode/:/home/user/.opencode \
         -v ~/workspaces/ai/home/hermes:/home/user/.hermes \
         -v ~/.kube/config:/home/user/.kube/config:ro \
         -l "traefik.enable=true" \
@@ -41,14 +42,14 @@ function runsvc(){
         -l "traefik.http.routers.${service_name}.entrypoints=https" \
         -l "traefik.http.routers.${service_name}.tls=true" \
         -l "traefik.http.routers.${service_name}.rule=Host(\`${service_name}.${WILDCARD_DOMAIN}\`)" \
-        -l "traefik.http.services.slop.loadbalancer.server.port=8124" \
+        -l "traefik.http.services.slop.loadbalancer.server.port=80" \
         -l "traefik.http.services.slop.loadbalancer.server.scheme=http" \
         -l "traefik.http.routers.slop.service=slop" \
         -l "traefik.http.routers.slop.entrypoints=https" \
         -l "traefik.http.routers.slop.tls=true" \
         -l "traefik.http.routers.slop.rule=Host(\`slop.${WILDCARD_DOMAIN}\`)" \
         -p "${EXPOSE_BINDADDRESS}:28123:8123" \
-        -p "${EXPOSE_BINDADDRESS}:28124:8124" \
+        -p "${EXPOSE_BINDADDRESS}:28180:80" \
         ${service_image} \
         sleep infinity
     
