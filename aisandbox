@@ -15,7 +15,8 @@ function runsvc(){
     mkdir -p ~/workspaces/ai/home/claude
     mkdir -p ~/workspaces/ai/home/codex
     mkdir -p ~/workspaces/ai/home/copilot
-    mkdir -p ~/workspaces/ai/home/opencode
+    mkdir -p ~/workspaces/ai/home/opencode/share
+    mkdir -p ~/workspaces/ai/home/opencode/state
     mkdir -p ~/workspaces/ai/home/hermes
 
     docker run -d \
