@@ -150,8 +150,8 @@ export ubuntu_image=docker.io/ubuntu:noble
 # k3s
 export k3s_image=docker.io/rancher/k3s:v1.34.6-k3s1
 
-# aisandbox
-export aisandbox_image=docker.io/alainpham/aisandbox:latest
+# sbx
+export sbx_image=docker.io/alainpham/aisandbox:latest
 
 
 # Helper functions
