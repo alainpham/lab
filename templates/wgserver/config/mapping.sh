@@ -11,7 +11,7 @@ peersmapping=(
     "mbm1|p22"
     "idea|p23"
     "fair|p24"
-    "hpkw|p25"
+    "hpra|p25"
     "hpjb|p26"
     # phones & tablets
     "iphone-8s-quang|p40"
