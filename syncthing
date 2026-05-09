@@ -191,6 +191,13 @@ rm -rf /home/${USER}/.config/ppsspp/PSP/PPSSPP_STATE
 ln -sf /home/${USER}/syncthing/ppsspp/SAVEDATA /home/${USER}/.config/ppsspp/PSP/SAVEDATA
 ln -sf /home/${USER}/syncthing/ppsspp/PPSSPP_STATE /home/${USER}/.config/ppsspp/PSP/PPSSPP_STATE
 
+
+mkdir -p "/home/${USER}/syncthing/fireash/Save Files"
+
+rm -rf "/home/${USER}/ROMs/desktop/fireash/Save Files"
+
+ln -sf "/home/${USER}/syncthing/fireash/Save Files" "/home/${USER}/ROMs/desktop/fireash/Save Files"
+
 # Define key+folder list (format: id|path). Add as many lines as needed.
 entries=(
     "syncthing|/home/${USER}/syncthing"
