@@ -22,6 +22,7 @@ LIVE_DIR="${TLS_DIR}/cfg/live"
 CA_KEY="${CA_DIR}/ca.key"
 CA_CERT="${CA_DIR}/ca.crt"
 CA_SUBJECT="/C=FR/ST=Local/L=Local/O=LocalLab/CN=LocalLab-CA"
+CA_CN="${CA_SUBJECT##*/CN=}"   # used to find the CA in NSS databases
 CERT_VALIDITY_DAYS=825   # max accepted by modern browsers (< 398 for strict)
 CA_VALIDITY_DAYS=3650
 
@@ -29,14 +30,154 @@ mkdir -p "${CA_DIR}" "${LIVE_DIR}"
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
+# Locate a command that may live in sbin (not on a normal user PATH)
+find_cmd() {
+  local c
+  for c in "$1" "/usr/sbin/$1" "/sbin/$1" "/usr/local/sbin/$1"; do
+    command -v "${c}" >/dev/null 2>&1 && { command -v "${c}"; return 0; }
+  done
+  return 1
+}
+
+# Distros disagree on both the drop-in directory and the refresh command.
+#   Debian/Ubuntu : /usr/local/share/ca-certificates  + update-ca-certificates
+#   openSUSE/SLE  : /etc/pki/trust/anchors            + update-ca-certificates (p11-kit)
+#   Fedora/RHEL   : /etc/pki/ca-trust/source/anchors  + update-ca-trust
+#   Arch          : /etc/ca-certificates/trust-source/anchors + trust extract-compat
+# Sets: TRUST_ANCHOR_DIR, TRUST_UPDATE_CMD, TRUST_FLAVOUR
+detect_trust_store() {
+  local dir cmd path
+  for entry in \
+    "/usr/local/share/ca-certificates:update-ca-certificates:debian" \
+    "/etc/pki/trust/anchors:update-ca-certificates:suse" \
+    "/etc/pki/ca-trust/source/anchors:update-ca-trust:fedora" \
+    "/etc/ca-certificates/trust-source/anchors:trust:arch" \
+  ; do
+    dir="${entry%%:*}"
+    cmd="${entry#*:}"; cmd="${cmd%%:*}"
+    [ -d "${dir}" ] || continue
+    path=$(find_cmd "${cmd}") || continue
+    TRUST_ANCHOR_DIR="${dir}"
+    TRUST_UPDATE_CMD="${path}"
+    TRUST_FLAVOUR="${entry##*:}"
+    return 0
+  done
+
+  echo "ERROR: could not detect this system's CA trust store." >&2
+  echo "       Looked for the drop-in dirs of Debian/Ubuntu, openSUSE, Fedora and Arch." >&2
+  echo "       Install your distro's 'ca-certificates' package, or import ${CA_CERT} manually." >&2
+  return 1
+}
+
+# Refresh the system trust store; pass --fresh to rebuild from scratch
+refresh_trust_store() {
+  case "${TRUST_FLAVOUR}" in
+    debian|suse) sudo "${TRUST_UPDATE_CMD}" "$@" ;;
+    fedora)      sudo "${TRUST_UPDATE_CMD}" extract ;;
+    arch)        sudo "${TRUST_UPDATE_CMD}" extract-compat ;;
+  esac
+}
+
+# certutil ships separately (libnss3-tools on Debian, mozilla-nss-tools on SUSE,
+# nss-tools on Fedora, nss on Arch). The system trust store step still works
+# without it, so warn instead of aborting.
+require_certutil() {
+  command -v certutil >/dev/null 2>&1 && return 0
+  echo ""
+  echo "WARNING: 'certutil' not found - skipping the Chrome/Firefox NSS steps."
+  echo "         The system trust store (curl, k8s tooling, ...) was still updated."
+  echo "         Install it with one of:"
+  echo "           openSUSE : sudo zypper install mozilla-nss-tools"
+  echo "           Debian   : sudo apt install libnss3-tools"
+  echo "           Fedora   : sudo dnf install nss-tools"
+  echo "           Arch     : sudo pacman -S nss"
+  echo "         then re-run: gentls ${1:---install-ca}"
+  return 1
+}
+
+# Chromium-family NSS databases.
+# Flatpak browsers with the 'home' permission see the real $HOME and therefore
+# use the host ~/.pki/nssdb. Ones confined to their own sandbox get a private
+# ~/.var/app/<id>/.pki/nssdb instead, so cover both.
+chromium_nss_dbs() {
+  local d
+  for d in \
+    "${HOME}/.pki/nssdb" \
+    "${HOME}/.var/app"/*/.pki/nssdb \
+    "${HOME}/snap"/*/current/.pki/nssdb \
+  ; do
+    [ -d "${d}" ] && echo "${d}"
+  done
+  return 0
+}
+
+# Firefox profile directories, across native / flatpak / snap layouts.
+# A directory counts as a profile if it already has a cert9.db, or if it looks
+# like one (times.json / prefs.js) - certutil -A creates the db when missing.
+# Matching on content rather than a '*.default*' name also catches custom names.
+firefox_nss_dbs() {
+  local root profile
+  for root in \
+    "${HOME}/.mozilla/firefox" \
+    "${HOME}/snap/firefox/common/.mozilla/firefox" \
+    "${HOME}/.var/app/org.mozilla.firefox/.mozilla/firefox" \
+    "${HOME}/.var/app/org.mozilla.firefox/config/mozilla/firefox" \
+  ; do
+    [ -d "${root}" ] || continue
+    for profile in "${root}"/*/; do
+      if [ -f "${profile}cert9.db" ] || [ -f "${profile}prefs.js" ] || [ -f "${profile}times.json" ]; then
+        echo "${profile%/}"
+      fi
+    done
+  done
+  return 0
+}
+
+# Remove every trace of our CA from one NSS database.
+# Two things make a single 'certutil -D -n LocalLab-CA' insufficient:
+#   1. NSS allows several certificates to share a nickname (one per CA
+#      generation), and -D removes only the first match - so loop.
+#   2. A CA imported by hand through the Firefox UI lands under a different
+#      nickname, so also sweep for any cert whose subject is our CA.
+# Echoes the number of certificates removed.
+nss_purge_ca() {
+  local db="$1" removed=0 nick
+  while certutil -D -n 'LocalLab-CA' -d "sql:${db}" -f /dev/null 2>/dev/null; do
+    removed=$((removed + 1))
+  done
+  while IFS= read -r nick; do
+    [ -n "${nick}" ] || continue
+    certutil -L -n "${nick}" -d "sql:${db}" 2>/dev/null \
+      | grep -q "CN=${CA_CN}" || continue
+    while certutil -D -n "${nick}" -d "sql:${db}" -f /dev/null 2>/dev/null; do
+      removed=$((removed + 1))
+    done
+  done < <(certutil -L -d "sql:${db}" 2>/dev/null \
+             | tail -n +4 \
+             | sed 's/[[:space:]]\{2,\}[^[:space:]]*[[:space:]]*$//' \
+             | sed '/^$/d')
+  echo "${removed}"
+}
+
+warn_if_browser_running() {
+  local proc
+  for proc in firefox chrome chromium; do
+    if pgrep -x "${proc}" >/dev/null 2>&1; then
+      echo ""
+      echo "NOTE: '${proc}' is running. It may overwrite the certificate database"
+      echo "      on exit - close it and re-run if the CA does not take effect."
+    fi
+  done
+}
+
 print_ca_import_instructions() {
   echo ""
   echo "┌─ How to trust the CA ──────────────────────────────────────────────┐"
   echo "│"
   echo "│  System-wide (Chrome, curl, most tools inherit this):              │"
   echo "│    gentls --install-ca                                             │"
-  echo "│    (runs: sudo cp ca.crt /usr/local/share/ca-certificates/         │"
-  echo "│           sudo update-ca-certificates)                             │"
+  echo "│    (copies ca.crt into your distro's CA anchor dir and refreshes   │"
+  echo "│     the trust store)                                               │"
   echo "│"
   echo "│  Firefox (manages its own trust store):                            │"
   echo "│    gentls --firefox                                                │"
@@ -144,27 +285,49 @@ EOF
 case "${1:-}" in
 
   --uninstall-ca)
+    detect_trust_store
+    # Sweep every known anchor dir, not just this distro's - covers a machine
+    # that was installed into under a different layout (or an older gentls).
     echo ">> Removing CA from system trust store..."
-    sudo rm -f /usr/local/share/ca-certificates/locallab-ca.crt
-    sudo update-ca-certificates --fresh
+    for dir in \
+      /usr/local/share/ca-certificates \
+      /etc/pki/trust/anchors \
+      /etc/pki/ca-trust/source/anchors \
+      /etc/ca-certificates/trust-source/anchors \
+    ; do
+      [ -f "${dir}/locallab-ca.crt" ] || continue
+      sudo rm -f "${dir}/locallab-ca.crt"
+      echo "   Removed: ${dir}/locallab-ca.crt"
+    done
+    refresh_trust_store --fresh
 
-    echo ">> Removing CA from Chrome NSS database (~/.pki/nssdb)..."
-    if [ -d "${HOME}/.pki/nssdb" ]; then
-      certutil -D -n 'LocalLab-CA' -d "sql:${HOME}/.pki/nssdb" -f /dev/null 2>/dev/null \
-        && echo "   Removed from Chrome NSS database." \
-        || echo "   Not found in Chrome NSS database (already removed?)."
-    else
-      echo "   Chrome NSS database not found, skipping."
-    fi
+    require_certutil || exit 0
+
+    echo ">> Removing CA from Chromium NSS databases..."
+    found=0
+    while read -r db; do
+      [ -n "${db}" ] || continue
+      found=1
+      n=$(nss_purge_ca "${db}")
+      [ "${n}" -gt 0 ] \
+        && echo "   Removed ${n} entry/entries from: ${db}" \
+        || echo "   Not present in: ${db}"
+    done < <(chromium_nss_dbs)
+    [ "${found}" -eq 1 ] || echo "   No Chromium NSS database found, skipping."
 
     echo ">> Removing CA from Firefox NSS databases..."
-    for db in "${HOME}/.mozilla/firefox"/*.default* "${HOME}/snap/firefox/common/.mozilla/firefox"/*.default* "${HOME}/.var/app/org.mozilla.firefox/config/mozilla/firefox"/*.default*; do
-      [ -d "${db}" ] || continue
-      certutil -D -n 'LocalLab-CA' -d "sql:${db}" -f /dev/null 2>/dev/null \
-        && echo "   Removed from: ${db}" \
-        || echo "   Not found in: ${db}"
-    done
+    found=0
+    while read -r db; do
+      [ -n "${db}" ] || continue
+      found=1
+      n=$(nss_purge_ca "${db}")
+      [ "${n}" -gt 0 ] \
+        && echo "   Removed ${n} entry/entries from: ${db}" \
+        || echo "   Not present in: ${db}"
+    done < <(firefox_nss_dbs)
+    [ "${found}" -eq 1 ] || echo "   No Firefox profile found, skipping."
 
+    warn_if_browser_running
     echo "Done. Restart Chrome and Firefox to apply."
     ;;
 
@@ -174,26 +337,50 @@ case "${1:-}" in
       exit 1
     fi
 
-    echo ">> Installing CA into system trust store (curl, system tools)..."
-    sudo cp "${CA_CERT}" /usr/local/share/ca-certificates/locallab-ca.crt
-    sudo update-ca-certificates
+    detect_trust_store
+    echo ">> Installing CA into system trust store (${TRUST_ANCHOR_DIR})..."
+    sudo install -m 0644 "${CA_CERT}" "${TRUST_ANCHOR_DIR}/locallab-ca.crt"
+    refresh_trust_store
 
-    echo ">> Installing CA into Chrome NSS database (~/.pki/nssdb)..."
-    # Wipe and recreate to ensure no password is set
-    rm -rf "${HOME}/.pki/nssdb"
-    mkdir -p "${HOME}/.pki/nssdb"
-    certutil -N -d "sql:${HOME}/.pki/nssdb" --empty-password
-    certutil -A -n 'LocalLab-CA' -t 'CT,,' -i "${CA_CERT}" -d "sql:${HOME}/.pki/nssdb" -f /dev/null
-    echo "   Done. Restart Chrome to apply."
+    require_certutil || exit 0
+
+    echo ">> Installing CA into Chromium NSS databases..."
+    # Create the default db if absent. Never wipe an existing one - it can hold
+    # client certificates the user cannot regenerate.
+    if [ ! -f "${HOME}/.pki/nssdb/cert9.db" ]; then
+      mkdir -p "${HOME}/.pki/nssdb"
+      certutil -N -d "sql:${HOME}/.pki/nssdb" --empty-password
+      echo "   Created ${HOME}/.pki/nssdb"
+    fi
+    while read -r db; do
+      [ -n "${db}" ] || continue
+      nss_purge_ca "${db}" >/dev/null   # drop stale entries from earlier CAs
+      if certutil -A -n 'LocalLab-CA' -t 'CT,,' -i "${CA_CERT}" -d "sql:${db}" -f /dev/null 2>/dev/null; then
+        echo "   Done: ${db}"
+      else
+        echo "   FAILED (db locked or password-protected): ${db}"
+      fi
+    done < <(chromium_nss_dbs)
+    echo "   Restart Chrome to apply."
 
     echo ">> Installing CA into Firefox NSS databases..."
-    for db in "${HOME}/.mozilla/firefox"/*.default* "${HOME}/snap/firefox/common/.mozilla/firefox"/*.default* "${HOME}/.var/app/org.mozilla.firefox/config/mozilla/firefox"/*.default*; do
-      [ -d "${db}" ] || continue
-      certutil -D -n 'LocalLab-CA' -d "sql:${db}" -f /dev/null 2>/dev/null || true
-      certutil -A -n 'LocalLab-CA' -t 'CT,,' -i "${CA_CERT}" -d "sql:${db}" -f /dev/null
-      echo "   Done: ${db}"
-    done
+    found=0
+    while read -r db; do
+      [ -n "${db}" ] || continue
+      found=1
+      nss_purge_ca "${db}" >/dev/null   # drop stale entries from earlier CAs
+      if certutil -A -n 'LocalLab-CA' -t 'CT,,' -i "${CA_CERT}" -d "sql:${db}" -f /dev/null 2>/dev/null; then
+        echo "   Done: ${db}"
+      else
+        echo "   FAILED (db locked or password-protected): ${db}"
+      fi
+    done < <(firefox_nss_dbs)
+    if [ "${found}" -eq 0 ]; then
+      echo "   No Firefox profile found. Launch Firefox once to create one, then re-run."
+    fi
     echo "   Restart Firefox to apply."
+
+    warn_if_browser_running
     ;;
 
   --ca-only)
