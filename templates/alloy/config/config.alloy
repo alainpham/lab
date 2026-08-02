@@ -194,7 +194,12 @@ otelcol.receiver.otlp "default" {
 
 otelcol.processor.resourcedetection "default" {
 	// https://grafana.com/docs/alloy/latest/reference/components/otelcol.processor.resourcedetection/
-	detectors = ["env", "docker", "system"]
+	// No "docker" detector: this container runs with --uts=host, so its own
+	// hostname is the host's. The docker detector inspects the daemon for a
+	// container by that name, finds none, and the component exits - which
+	// takes the whole OTLP pipeline down and makes the receiver answer
+	// 503 "context canceled" to every client. "system" supplies host.name.
+	detectors = ["env", "system"]
 
 	system {
 		hostname_sources = ["os"]
@@ -336,6 +341,17 @@ otelcol.auth.basic "grafana_cloud" {
 
 prometheus.exporter.cadvisor "integrations_cadvisor" {
     docker_only = true
+
+    // Docker >= 25 with the containerd snapshotter (storage driver "overlayfs")
+    // makes cadvisor resolve image/layer info through containerd. Docker embeds
+    // its own containerd, which listens here - not on cadvisor's default
+    // /run/containerd/containerd.sock. The socket must also be bind-mounted
+    // into this container (see the alloy service script).
+    // Leave containerd_namespace at its default "k8s.io": dockerd uses the
+    // "moby" namespace, and pointing cadvisor there makes its containerd
+    // factory claim the containers before the docker factory does, which loses
+    // container names (name becomes the raw 64-char ID) and all docker labels.
+    containerd_host = "/var/run/docker/containerd/containerd.sock"
 }
 discovery.relabel "integrations_cadvisor" {
     targets = prometheus.exporter.cadvisor.integrations_cadvisor.targets
