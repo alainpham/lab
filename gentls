@@ -2,11 +2,17 @@
 # gentls - Generate self-signed TLS certificates trusted by browsers
 #
 # Usage:
-#   gentls               - generate wildcard certs for WILDCARD_DOMAIN and K3S_WILDCARD_DOMAIN
+#   gentls               - generate wildcard certs for WILDCARD_DOMAIN,
+#                          K3S_WILDCARD_DOMAIN and EXTRA_WILDCARD_DOMAINS
 #   gentls domain [...]  - generate cert for custom domain(s)
+#   gentls --force       - as above, but reissue certs even if still valid
+#                          (combines with a domain list; never touches the CA)
 #   gentls --ca-only     - generate/renew the CA only
+#   gentls --status        - show the CA, issued certs and where the CA is trusted
 #   gentls --install-ca    - install CA into system trust store (requires sudo)
 #   gentls --uninstall-ca  - remove CA from system trust store (requires sudo)
+#
+# --status exits 0 when everything matches, 1 when something needs attention.
 
 
 set -euo pipefail
@@ -25,6 +31,19 @@ CA_SUBJECT="/C=FR/ST=Local/L=Local/O=LocalLab/CN=LocalLab-CA"
 CA_CN="${CA_SUBJECT##*/CN=}"   # used to find the CA in NSS databases
 CERT_VALIDITY_DAYS=825   # max accepted by modern browsers (< 398 for strict)
 CA_VALIDITY_DAYS=3650
+
+# Wildcard domains a bare 'gentls' always issues, on top of WILDCARD_DOMAIN and
+# K3S_WILDCARD_DOMAIN which come from initlab. Each entry yields one cert
+# covering both the apex and *.apex. Add more here as needed.
+EXTRA_WILDCARD_DOMAINS=("codersandbox.com")
+
+# A certificate with less than this many days left is reissued rather than kept
+RENEW_BEFORE_DAYS=30
+
+# Set by --force: reissue leaf certificates even when the existing ones are
+# still valid. Never touches the CA - replacing that would invalidate every
+# trust store install, so it stays behind --ca-only.
+FORCE=0
 
 mkdir -p "${CA_DIR}" "${LIVE_DIR}"
 
@@ -159,6 +178,61 @@ nss_purge_ca() {
   echo "${removed}"
 }
 
+# ── status helpers ───────────────────────────────────────────────────────────
+
+# SHA-256 fingerprint of a PEM certificate, colons stripped, for comparison.
+cert_fingerprint() {
+  openssl x509 -noout -fingerprint -sha256 -in "$1" 2>/dev/null \
+    | sed 's/.*=//' | tr -d ':'
+}
+
+# Whole days until a certificate expires (negative once expired).
+cert_days_left() {
+  local end epoch now
+  end=$(openssl x509 -noout -enddate -in "$1" 2>/dev/null | sed 's/notAfter=//') || return 1
+  [ -n "${end}" ] || return 1
+  epoch=$(date -d "${end}" +%s 2>/dev/null) || return 1
+  now=$(date +%s)
+  echo $(( (epoch - now) / 86400 ))
+}
+
+# Fingerprints of every certificate in an NSS database whose subject is our CA.
+# One line per certificate, so a database holding several CA generations shows
+# each of them rather than collapsing to one.
+nss_ca_fingerprints() {
+  local db="$1" nick
+  while IFS= read -r nick; do
+    [ -n "${nick}" ] || continue
+    certutil -L -n "${nick}" -d "sql:${db}" 2>/dev/null \
+      | grep -q "CN=${CA_CN}" || continue
+    certutil -L -n "${nick}" -d "sql:${db}" -a 2>/dev/null \
+      | openssl x509 -noout -fingerprint -sha256 2>/dev/null \
+      | sed 's/.*=//' | tr -d ':'
+  done < <(certutil -L -d "sql:${db}" 2>/dev/null \
+             | tail -n +4 \
+             | sed 's/[[:space:]]\{2,\}[^[:space:]]*[[:space:]]*$//' \
+             | sed '/^$/d')
+  return 0
+}
+
+# Compare a store's copy of the CA against the CA on disk. Prints one of:
+#   OK      same certificate
+#   STALE   a different CA generation is trusted
+#   MISSING nothing installed here
+#   ORPHAN  something is installed but there is no local CA to compare it to
+trust_state() {
+  local found="$1" want="$2"
+  if [ -z "${found}" ]; then
+    echo "MISSING"
+  elif [ -z "${want}" ]; then
+    echo "ORPHAN"
+  elif [ "${found}" = "${want}" ]; then
+    echo "OK"
+  else
+    echo "STALE"
+  fi
+}
+
 warn_if_browser_running() {
   local proc
   for proc in firefox chrome chromium; do
@@ -208,6 +282,41 @@ generate_ca() {
   print_ca_import_instructions
 }
 
+# Is the certificate in this directory still good for exactly these names?
+# Every condition has to hold, otherwise the cert gets reissued:
+#   - all four output files present
+#   - chains to the CA that is on disk *now* (a CA regen invalidates old leaves)
+#   - the private key actually belongs to the certificate
+#   - SANs match the requested names exactly, so adding or removing a domain
+#     from EXTRA_WILDCARD_DOMAINS still triggers a reissue
+#   - more than RENEW_BEFORE_DAYS of validity left
+cert_is_current() {
+  local cert_dir="$1"; shift
+  local domains=("$@")
+  local cert="${cert_dir}/cert.pem"
+  local want have days
+
+  [ -f "${cert}" ] \
+    && [ -f "${cert_dir}/privkey.pem" ] \
+    && [ -f "${cert_dir}/chain.pem" ] \
+    && [ -f "${cert_dir}/fullchain.pem" ] || return 1
+
+  openssl verify -CAfile "${CA_CERT}" "${cert}" >/dev/null 2>&1 || return 1
+
+  [ "$(openssl x509 -noout -pubkey -in "${cert}" 2>/dev/null | sha256sum)" \
+    = "$(openssl pkey -in "${cert_dir}/privkey.pem" -pubout 2>/dev/null | sha256sum)" ] || return 1
+
+  want=$(printf 'DNS:%s\n' "${domains[@]}" | sort -u | paste -sd, -)
+  have=$(openssl x509 -noout -ext subjectAltName -in "${cert}" 2>/dev/null \
+           | tail -n +2 | tr -d ' ' | tr ',' '\n' | sed '/^$/d' | sort -u | paste -sd, -)
+  [ "${want}" = "${have}" ] || return 1
+
+  days=$(cert_days_left "${cert}") || return 1
+  [ "${days}" -ge "${RENEW_BEFORE_DAYS}" ] || return 1
+
+  return 0
+}
+
 generate_cert() {
   local domains=("$@")
   local primary="${domains[0]}"
@@ -217,6 +326,18 @@ generate_cert() {
   dir_name=$(echo "${primary}" | sed 's/^\*\.//')
 
   local cert_dir="${LIVE_DIR}/${dir_name}"
+
+  # Reuse a still-valid certificate so repeated runs are a no-op. Reissuing
+  # would hand out a new key and serial, and anything already serving the old
+  # files (Traefik) would need a reload to notice.
+  if [ "${FORCE}" -eq 0 ] && cert_is_current "${cert_dir}" "${domains[@]}"; then
+    echo ">> Keeping certificate for: ${domains[*]}"
+    echo "   Dir:         ${cert_dir}"
+    echo "   Valid for:   $(cert_days_left "${cert_dir}/cert.pem") more days (use --force to reissue)"
+    echo ""
+    return 0
+  fi
+
   local key_file="${cert_dir}/privkey.pem"
   local csr_file="${cert_dir}/cert.csr"
   local crt_file="${cert_dir}/cert.pem"
@@ -282,7 +403,147 @@ EOF
 
 # ── main ─────────────────────────────────────────────────────────────────────
 
+# Pull --force out of the arguments wherever it appears, so it composes with a
+# bare run and with an explicit domain list alike.
+gentls_args=()
+for arg in "$@"; do
+  case "${arg}" in
+    --force|-f) FORCE=1 ;;
+    *)          gentls_args+=("${arg}") ;;
+  esac
+done
+set -- ${gentls_args[@]+"${gentls_args[@]}"}
+
 case "${1:-}" in
+
+  --status)
+    problems=0
+
+    # ── the CA itself ────────────────────────────────────────────────────────
+    echo "CA"
+    if [ ! -f "${CA_CERT}" ]; then
+      echo "   (none)   no CA at ${CA_CERT} - run 'gentls' to create one"
+      problems=1
+      ca_fp=""
+    else
+      ca_fp=$(cert_fingerprint "${CA_CERT}")
+      ca_days=$(cert_days_left "${CA_CERT}" || echo "?")
+      printf "   %-12s %s\n" "path" "${CA_CERT}"
+      printf "   %-12s %s\n" "subject" \
+        "$(openssl x509 -noout -subject -in "${CA_CERT}" 2>/dev/null | sed 's/^subject=//')"
+      printf "   %-12s %s\n" "sha256" "${ca_fp:0:32}..."
+      if [ "${ca_days}" != "?" ] && [ "${ca_days}" -lt 0 ]; then
+        printf "   %-12s %s (EXPIRED)\n" "expires" \
+          "$(openssl x509 -noout -enddate -in "${CA_CERT}" | sed 's/notAfter=//')"
+        problems=1
+      else
+        printf "   %-12s %s (%s days left)\n" "expires" \
+          "$(openssl x509 -noout -enddate -in "${CA_CERT}" | sed 's/notAfter=//')" "${ca_days}"
+      fi
+      [ -f "${CA_KEY}" ] || { echo "   WARNING  CA key missing - cannot issue new certificates"; problems=1; }
+    fi
+
+    # ── issued certificates ──────────────────────────────────────────────────
+    echo ""
+    echo "Certificates (${LIVE_DIR})"
+    cert_count=0
+    for cert_dir in "${LIVE_DIR}"/*/; do
+      [ -f "${cert_dir}cert.pem" ] || continue
+      cert_count=$((cert_count + 1))
+      name=$(basename "${cert_dir}")
+      days=$(cert_days_left "${cert_dir}cert.pem" || echo "?")
+      sans=$(openssl x509 -noout -ext subjectAltName -in "${cert_dir}cert.pem" 2>/dev/null \
+               | tail -n +2 | tr -d ' ' | paste -sd, - )
+      # Was this leaf signed by the CA currently on disk? After a CA regen the
+      # old leaves stop chaining, which browsers report as an untrusted cert.
+      if [ -n "${ca_fp}" ] && openssl verify -CAfile "${CA_CERT}" "${cert_dir}cert.pem" >/dev/null 2>&1; then
+        chain="chains to current CA"
+      else
+        chain="DOES NOT CHAIN to current CA - regenerate"
+        problems=1
+      fi
+      if [ "${days}" != "?" ] && [ "${days}" -lt 0 ]; then
+        printf "   %-22s EXPIRED    %s\n" "${name}" "${chain}"
+        problems=1
+      else
+        printf "   %-22s %4sd left  %s\n" "${name}" "${days}" "${chain}"
+      fi
+      printf "   %-22s %s\n" "" "${sans}"
+    done
+    [ "${cert_count}" -gt 0 ] || echo "   (none)"
+
+    # ── trust stores ─────────────────────────────────────────────────────────
+    echo ""
+    echo "Trust stores"
+
+    # System: report every anchor dir that holds a copy, not just this
+    # distro's, so leftovers from another layout are visible.
+    sys_found=0
+    for dir in \
+      /usr/local/share/ca-certificates \
+      /etc/pki/trust/anchors \
+      /etc/pki/ca-trust/source/anchors \
+      /etc/ca-certificates/trust-source/anchors \
+    ; do
+      [ -f "${dir}/locallab-ca.crt" ] || continue
+      sys_found=1
+      state=$(trust_state "$(cert_fingerprint "${dir}/locallab-ca.crt")" "${ca_fp}")
+      printf "   %-8s %-7s %s\n" "system" "${state}" "${dir}/locallab-ca.crt"
+      [ "${state}" = "OK" ] || problems=1
+    done
+    if [ "${sys_found}" -eq 0 ]; then
+      printf "   %-8s %-7s %s\n" "system" "MISSING" "not in any known anchor dir - run 'gentls --install-ca'"
+      problems=1
+    fi
+    # Functional check: does the default store actually accept the CA? This is
+    # what curl / kubectl / openssl really consult.
+    if [ -n "${ca_fp}" ]; then
+      if openssl verify "${CA_CERT}" >/dev/null 2>&1; then
+        printf "   %-8s %-7s %s\n" "" "OK" "openssl trusts it via the default store"
+      else
+        printf "   %-8s %-7s %s\n" "" "NO" "openssl does NOT trust it (trust store not refreshed?)"
+        problems=1
+      fi
+    fi
+
+    if ! command -v certutil >/dev/null 2>&1; then
+      printf "   %-8s %-7s %s\n" "browsers" "SKIP" "certutil not installed - cannot inspect NSS databases"
+    else
+      for label in chrome firefox; do
+        [ "${label}" = "chrome" ] && dbs=$(chromium_nss_dbs) || dbs=$(firefox_nss_dbs)
+        if [ -z "${dbs}" ]; then
+          printf "   %-8s %-7s %s\n" "${label}" "-" "no database found"
+          continue
+        fi
+        while IFS= read -r db; do
+          [ -n "${db}" ] || continue
+          fps=$(nss_ca_fingerprints "${db}")
+          n=$(printf '%s\n' "${fps}" | sed '/^$/d' | wc -l)
+          if [ "${n}" -gt 1 ]; then
+            # Several generations of the CA trusted at once - browsers may pin
+            # the wrong one. --install-ca now purges before adding.
+            printf "   %-8s %-7s %s\n" "${label}" "DUPES" "${n} copies in ${db}"
+            problems=1
+          else
+            state=$(trust_state "$(printf '%s' "${fps}" | head -1)" "${ca_fp}")
+            printf "   %-8s %-7s %s\n" "${label}" "${state}" "${db}"
+            [ "${state}" = "OK" ] || problems=1
+          fi
+        done <<< "${dbs}"
+      done
+    fi
+
+    echo ""
+    if [ "${problems}" -eq 0 ]; then
+      echo "All good."
+    else
+      echo "Legend: OK = matches the CA on disk | STALE  = a different CA generation"
+      echo "        MISSING = not installed     | DUPES  = several generations trusted"
+      echo "        ORPHAN = installed, but there is no local CA to compare against"
+      echo "Run 'gentls --install-ca' to (re)install the current CA everywhere."
+    fi
+    exit "${problems}"
+    ;;
 
   --uninstall-ca)
     detect_trust_store
@@ -397,6 +658,10 @@ case "${1:-}" in
     echo ""
     generate_cert "${WILDCARD_DOMAIN}" "*.${WILDCARD_DOMAIN}"
     generate_cert "${K3S_WILDCARD_DOMAIN}" "*.${K3S_WILDCARD_DOMAIN}"
+    # Guarded expansion so emptying the list stays safe under 'set -u'
+    for extra_domain in ${EXTRA_WILDCARD_DOMAINS[@]+"${EXTRA_WILDCARD_DOMAINS[@]}"}; do
+      generate_cert "${extra_domain}" "*.${extra_domain}"
+    done
     echo "All done. Import the CA once to silence browser warnings:"
     echo "  gentls --install-ca"
     ;;
