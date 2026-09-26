@@ -5,7 +5,8 @@
       "Read(//run/containerd/**)",
       "Read(//run/**)",
       "Bash(docker info *)",
-      "Bash(sudo -n ls -l /run/containerd/ /run/docker/containerd/)"
+      "Bash(sudo -n ls -l /run/containerd/ /run/docker/containerd/)",
+      "WebFetch(domain:developer.hosting.ionos.de)"
     ]
   }
 }
