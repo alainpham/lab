@@ -361,7 +361,7 @@ function gentls(){
   "${script_dir}/gentls" "$@"
 }
 
-function gencertionos(){
+function gencertionosone(){
   if [ -z "${IONOS_API_KEY}" ] && [ -z "${IONOS_API_PREFIX}${IONOS_API_SECRET}" ]; then
     echo "IONOS_API_KEY is not set, add it to ${script_dir}/secret"
     return 1
@@ -375,7 +375,46 @@ function gencertionos(){
     docker build -t ${CERTBOT_IMAGE} ${script_dir}/certbot
   fi
 
-  for domain in ${WILDCARD_DOMAIN} ${K3S_WILDCARD_DOMAIN}; do
+  for domain in "$@"; do
+    docker run --rm --name certbot \
+      -e IONOS_API_KEY \
+      -e IONOS_API_PREFIX \
+      -e IONOS_API_SECRET \
+      -e IONOS_TTL \
+      -e IONOS_PROPAGATION_SECONDS \
+      -v "/home/${USER}/apps/tls/cfg:/etc/letsencrypt" \
+      -v "/home/${USER}/apps/tls/logs:/var/log/letsencrypt" \
+      -v "${script_dir}/certbot/auth.sh:/auth.sh:ro" \
+      ${CERTBOT_IMAGE} \
+        certonly \
+          --non-interactive \
+          --agree-tos \
+          --email ${EMAIL} \
+          --preferred-challenges dns \
+          --authenticator manual \
+          --manual-auth-hook "/auth.sh" \
+          --manual-cleanup-hook "/auth.sh cleanup" \
+          -d "*.${domain}"
+  done
+
+  sudo chown -R ${USER}:$(id -gn) /home/${USER}/apps/tls/cfg
+}
+
+function gencertionosall(){
+  if [ -z "${IONOS_API_KEY}" ] && [ -z "${IONOS_API_PREFIX}${IONOS_API_SECRET}" ]; then
+    echo "IONOS_API_KEY is not set, add it to ${script_dir}/secret"
+    return 1
+  fi
+
+  sudo rm -rf /home/${USER}/apps/tls
+
+  mkdir -p /home/${USER}/apps/tls/cfg /home/${USER}/apps/tls/logs
+
+  if ! docker image inspect ${CERTBOT_IMAGE} &>/dev/null; then
+    docker build -t ${CERTBOT_IMAGE} ${script_dir}/certbot
+  fi
+
+  for domain in ${WILDCARD_DOMAIN} ${K3S_WILDCARD_DOMAIN} ${PUBLIC_WILDCARD_DOMAIN}; do
     docker run --rm --name certbot \
       -e IONOS_API_KEY \
       -e IONOS_API_PREFIX \
