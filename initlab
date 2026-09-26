@@ -109,6 +109,9 @@ export pkdex_image=ghcr.io/codersandbox/pkdex:2.0.0
 # https://github.com/codersandbox/grgr/pkgs/container/grgr
 export grgr_image=ghcr.io/codersandbox/grgr:1.0.0
 
+# https://github.com/codersandbox/grgr/pkgs/container/grgr
+export gagnotte_image=alainpham/collecte-anniversaire:latest
+
 # https://hub.docker.com/r/linuxserver/wireguard/tags?name=1.
 export wgserver_image=linuxserver/wireguard:1.0.20250521
 export wgclient_image=$wgserver_image
