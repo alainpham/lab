@@ -11,6 +11,9 @@ function runsvc(){
     service_name=$1
     service_image=$2
 
+    mkdir -p "${DATA_ROOT_FOLDER}/${service_name}/data/db"
+    mkdir -p "${DATA_ROOT_FOLDER}/${service_name}/data/tls"
+
     docker run -d \
         --name "${service_name}" \
         --hostname "${service_name}" \
@@ -19,7 +22,8 @@ function runsvc(){
         --network ${DOCKER_NETWORK_NAME} \
         -e "ENV_VAR=VALUE" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config:ro" \
-        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data:rw" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data/db:/data:rw" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data/tls:/etc/letsencrypt:rw" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=81" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
