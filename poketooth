@@ -19,7 +19,7 @@ function runsvc(){
         --network ${DOCKER_NETWORK_NAME} \
         -e "ENV_VAR=VALUE" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config:ro" \
-        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data:rw" \
+        -v "${DATA_ROOT_FOLDER}/${service_name}/data:/var/lib/poketooth:rw" \
         -l "traefik.enable=true" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.port=8080" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
