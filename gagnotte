@@ -21,7 +21,7 @@ function runsvc(){
         -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config:ro" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data:rw" \
         -l "traefik.enable=true" \
-        -l "traefik.http.services.${service_name}.loadbalancer.server.port=8080" \
+        -l "traefik.http.services.${service_name}.loadbalancer.server.port=3000" \
         -l "traefik.http.services.${service_name}.loadbalancer.server.scheme=http" \
         -l "traefik.http.routers.${service_name}.service=${service_name}" \
         -l "traefik.http.routers.${service_name}.entrypoints=https" \
