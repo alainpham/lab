@@ -113,8 +113,8 @@ export grgr_image=ghcr.io/codersandbox/grgr:1.0.0
 
 export gagnotte_image=alainpham/collecte-anniversaire:latest
 
-# https://github.com/codersandbox/poketooh/pkgs/container/poketooh
-export poketooth_image=ghcr.io/codersandbox/poketooh:latest
+# https://github.com/codersandbox/poketooth/pkgs/container/poketooth
+export poketooth_image=ghcr.io/codersandbox/poketooth:latest
 
 
 # https://hub.docker.com/r/linuxserver/wireguard/tags?name=1.
