@@ -17,6 +17,7 @@ function runsvc(){
         --restart unless-stopped \
         --user "${exec_as_user}:${exec_as_group}" \
         --network ${DOCKER_NETWORK_NAME} \
+        -e "ROOT_GIT_REPO=https://raw.githubusercontent.com/alainpham/applate/master" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/config:/config:ro" \
         -v "${DATA_ROOT_FOLDER}/${service_name}/data:/data:rw" \
         -l "traefik.enable=true" \
