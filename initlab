@@ -245,16 +245,28 @@ function delete_config_and_data_folder(){
 
 
 # List configured host-to-container port mappings without executing service scripts.
-# Variable references are kept as written in the source.
+# Show host and container ports, omitting optional bind addresses.
 function list_ports(){
   local service_script
 
-  printf '%-25s %s\n' 'SERVICE (RUN)' 'PUBLISHED PORTS (HOST:CONTAINER)'
+  if [ "$#" -gt 1 ] || { [ "$#" -eq 1 ] && [ "$1" != "--sort-port" ]; }; then
+    echo 'Usage: list_ports [--sort-port]' >&2
+    return 1
+  fi
+
+  printf '%-25s %s\n' 'SERVICE' 'HOST:CONTAINER'
+  printf '%-25s %s\n' '------------------------' '------------------------'
   for service_script in "${script_dir}"/*; do
     [ -f "$service_script" ] || continue
     awk '
       function print_run() {
-        printf "%-25s %s\n", service " (" run ")", ports == "" ? "(none)" : ports
+        if (ports == "") {
+          printf "%-25s %s\n", service, "(none)"
+        } else {
+          port_count = split(ports, mappings, ", ")
+          for (port_index = 1; port_index <= port_count; port_index++)
+            printf "%-25s %s\n", service, mappings[port_index]
+        }
         in_run = 0
       }
       FNR == 1 {
@@ -276,7 +288,6 @@ function list_ports(){
           if (!match(line, /(^|[[:space:]])docker[[:space:]]+run[[:space:]]/)) next
           line = substr(line, RSTART + RLENGTH)
           in_run = 1
-          run++
           ports = ""
           want_port = 0
         }
@@ -299,6 +310,9 @@ function list_ports(){
             continue
           }
           gsub(/[\047\042]/, "", word)
+          parts_count = split(word, port_parts, ":")
+          if (parts_count > 2)
+            word = port_parts[parts_count - 1] ":" port_parts[parts_count]
           ports = ports (ports == "" ? "" : ", ") word
           want_port = 0
         }
@@ -306,13 +320,19 @@ function list_ports(){
       }
       END { if (in_run) print_run() }
     ' "$service_script"
-  done
+  done | sort -k2,2nr -k1,1
 }
 
 function lab(){
 
+if [ "$1" == "ps" ]; then
+  check_updates
+  return $?
+fi
+
 if [ "$1" == "ports" ]; then
-  list_ports
+  shift
+  list_ports "$@"
   return $?
 fi
 
@@ -324,7 +344,8 @@ if [ "$1" == "help" ]; then
   echo "  destroy <service_name>  - Stop, remove the container, and delete its configuration and data."
   echo "  rerun <service_name>    - destroy and run again"
   echo "  up <service_name>       - remove container and run again (keeps data, updates config)"
-  echo "  ports                   - List configured published ports for every service."
+  echo "  ports                   - List published ports by host port, highest to lowest."
+  echo "  ps                      - List running services, images, and available configured upgrades."
   echo "  help                    - Display this help message."
   return 0
 fi
@@ -408,18 +429,27 @@ function networking(){
 }
 
 function check_updates(){
-  local name image_var exported_image running_image status
+  local name image_var exported_image running_image status running_names
 
-  printf "%-25s %-55s %-55s %s\n" "CONTAINER" "RUNNING IMAGE" "EXPORTED IMAGE" "STATUS"
+  running_names=$(docker ps --format '{{.Names}}') || return $?
+
+  printf "%-25s %-55s %-55s %s\n" "SERVICE" "RUNNING IMAGE" "CONFIGURED IMAGE" "STATUS"
   printf "%-25s %-55s %-55s %s\n" "---------" "-------------" "--------------" "------"
 
   while IFS= read -r name; do
-    running_image=$(docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null)
+    [ -n "$name" ] || continue
+    if ! running_image=$(docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null); then
+      printf '%-25s %s\n' "$name" '(unable to inspect container)'
+      continue
+    fi
     image_var="${name}_image"
-    exported_image="${!image_var}"
+    exported_image=""
+    if [[ "$image_var" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; then
+      exported_image="${!image_var}"
+    fi
 
     if [ -z "$exported_image" ]; then
-      status="(no export)"
+      status="(not configured)"
     elif [ "$running_image" == "$exported_image" ]; then
       status="✅ up to date"
     else
@@ -427,7 +457,7 @@ function check_updates(){
     fi
 
     printf "%-25s %-55s %-55s %s\n" "$name" "$running_image" "${exported_image:-(none)}" "$status"
-  done < <(docker ps --format '{{.Names}}' | sort)
+  done < <(printf '%s\n' "$running_names" | sort)
 }
 
 
