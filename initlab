@@ -116,6 +116,7 @@ export gagnotte_image=alainpham/collecte-anniversaire:latest
 # https://github.com/codersandbox/poketooth/pkgs/container/poketooth
 export poketooth_image=ghcr.io/codersandbox/poketooth:latest
 
+export agentv_image=alainpham/agentv:1.0.0
 
 # https://hub.docker.com/r/linuxserver/wireguard/tags?name=1.
 export wgserver_image=linuxserver/wireguard:1.0.20250521
@@ -160,7 +161,6 @@ export k3s_image=docker.io/rancher/k3s:v1.35.5-k3s1
 
 # sbx
 export sbx_image=docker.io/alainpham/aisandbox:latest
-
 
 # Helper functions
 
@@ -244,7 +244,77 @@ function delete_config_and_data_folder(){
 }
 
 
+# List configured host-to-container port mappings without executing service scripts.
+# Variable references are kept as written in the source.
+function list_ports(){
+  local service_script
+
+  printf '%-25s %s\n' 'SERVICE (RUN)' 'PUBLISHED PORTS (HOST:CONTAINER)'
+  for service_script in "${script_dir}"/*; do
+    [ -f "$service_script" ] || continue
+    awk '
+      function print_run() {
+        printf "%-25s %s\n", service " (" run ")", ports == "" ? "(none)" : ports
+        in_run = 0
+      }
+      FNR == 1 {
+        service = FILENAME
+        sub(/^.*\//, "", service)
+      }
+      /^[[:space:]]*(function[[:space:]]+runsvc([[:space:]]|\()|runsvc[[:space:]]*\(\))/ {
+        in_function = 1
+        next
+      }
+      in_function && /^[[:space:]]*}/ {
+        if (in_run) print_run()
+        in_function = 0
+      }
+      !in_function || /^[[:space:]]*#/ { next }
+      {
+        line = $0
+        if (!in_run) {
+          if (!match(line, /(^|[[:space:]])docker[[:space:]]+run[[:space:]]/)) next
+          line = substr(line, RSTART + RLENGTH)
+          in_run = 1
+          run++
+          ports = ""
+          want_port = 0
+        }
+        continued = line ~ /\\[[:space:]]*$/
+        sub(/\\[[:space:]]*$/, "", line)
+        count = split(line, words, /[[:space:]]+/)
+        for (i = 1; i <= count; i++) {
+          word = words[i]
+          if (word == "") continue
+          if (word ~ /^#/) break
+          if (word == "-p" || word == "--publish") {
+            want_port = 1
+            continue
+          }
+          if (word ~ /^--publish=/) {
+            sub(/^--publish=/, "", word)
+          } else if (word ~ /^-p./) {
+            sub(/^-p=?/, "", word)
+          } else if (!want_port) {
+            continue
+          }
+          gsub(/[\047\042]/, "", word)
+          ports = ports (ports == "" ? "" : ", ") word
+          want_port = 0
+        }
+        if (!continued) print_run()
+      }
+      END { if (in_run) print_run() }
+    ' "$service_script"
+  done
+}
+
 function lab(){
+
+if [ "$1" == "ports" ]; then
+  list_ports
+  return $?
+fi
 
 if [ "$1" == "help" ]; then
   echo "Available commands:"
@@ -254,6 +324,7 @@ if [ "$1" == "help" ]; then
   echo "  destroy <service_name>  - Stop, remove the container, and delete its configuration and data."
   echo "  rerun <service_name>    - destroy and run again"
   echo "  up <service_name>       - remove container and run again (keeps data, updates config)"
+  echo "  ports                   - List configured published ports for every service."
   echo "  help                    - Display this help message."
   return 0
 fi
